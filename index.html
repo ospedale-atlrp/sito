@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<base href="index/" />
+<title>Policlinico Nazionale Montessori — Atlantis RP</title>
+<meta name="description" content="Policlinico Nazionale Montessori, l'ospedale ufficiale del server Minecraft Atlantis RP." />
+<link rel="stylesheet" href="../css/style.css?v=20260714-2" />
+<script>(function(){var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-media">
+    <img src="../img/ospedale.png" alt="Facciata del Policlinico Nazionale Montessori" />
+  </div>
+  <div class="hero-content container">
+    <div class="hero-panel">
+      <span class="eyebrow" data-i18n="hero.eyebrow">Atlantis RP — Server Minecraft</span>
+      <h1 data-i18n="hero.title">Policlinico Nazionale Montessori</h1>
+      <p class="hero-subtitle" data-i18n="hero.subtitle">Il presidio ospedaliero di riferimento della cittadinanza di Atlantis.</p>
+      <div class="hero-cta-groups">
+        <div class="hero-cta-group hero-cta-group-patient">
+          <span class="hero-cta-label">Sei un paziente? Prenota visite, certificati e vaccini</span>
+          <a href="area-personale.html" class="btn btn-telegram">✈ Prenota / Accedi come paziente</a>
+        </div>
+        <div class="hero-cta-group hero-cta-group-staff">
+          <span class="hero-cta-label">Fai parte dello staff?</span>
+          <div class="hero-cta">
+            <a href="staff.html" class="btn btn-outline" data-i18n="hero.cta.staff">Scopri lo Staff</a>
+            <a href="login.html" class="btn btn-primary" data-i18n="hero.cta.login">Accedi all'Area Riservata Staff</a>
+          </div>
+        </div>
+        <div class="hero-cta-group hero-cta-group-recruitment">
+          <span class="hero-cta-label">Vuoi far parte dello staff?</span>
+          <a href="bandi.html" class="btn btn-recruitment">Scopri i bandi aperti</a>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><b>4</b><span data-i18n="hero.stat.reparti">Reparti attivi</span></div>
+        <div class="hero-stat"><b>15</b><span data-i18n="hero.stat.personale">Ruoli in organico</span></div>
+        <div class="hero-stat"><b>24/7</b><span data-i18n="hero.stat.h24">Assistenza</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div id="ecg-slot"></div>
+
+<section class="about">
+  <div class="container about-block reveal">
+    <div>
+      <span class="eyebrow" data-i18n="hero.eyebrow">Atlantis RP — Server Minecraft</span>
+      <h2 style="margin-top:14px;" data-i18n="about.title">Un ospedale al servizio delle Isole Canarie</h2>
+      <p style="margin-top:16px;" data-i18n="about.text">Il Policlinico Nazionale Montessori nasce per offrire ai cittadini di Atlantis un punto di riferimento: si possono effettuare Operazioni Chirurgiche, Certificati Medici, Vaccini e molto altro.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-gallery">
+        <img src="../img/ospedale.png" alt="Facciata del Policlinico Nazionale Montessori" onerror="this.style.display='none';" />
+        <img src="../img/reception.png" alt="Reception del Policlinico Nazionale Montessori" onerror="this.style.display='none';" />
+        <img src="../img/sala_conferenze.png" alt="Sala conferenze del Policlinico Nazionale Montessori" onerror="this.style.display='none';" />
+        <img src="../img/entrata_ambulanze.png" alt="Entrata ambulanze del Policlinico Nazionale Montessori" onerror="this.style.display='none';" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="team-photo">
+  <div class="container reveal">
+    <h2 class="team-photo-title">Il nostro Team Ospedaliero sempre in aggiornamento</h2>
+    <div class="team-photo-frame team-photo-frame-large">
+      <img src="../img/foto_gruppo1.png" alt="Foto di gruppo dello staff del Policlinico Nazionale Montessori"
+        onerror="this.parentElement.classList.add('img-missing'); this.remove();" />
+      <div class="img-missing-note">
+        ⚠️ Immagine non trovata.<br />Verifica che <code>foto_gruppo1.png</code> sia dentro la cartella <code>img</code>, allo stesso livello di <code>css</code> e <code>js</code>, e che il nome del file corrisponda esattamente (maiuscole/minuscole comprese).
+      </div>
+    </div>
+    <div class="team-photo-cta">
+      <button class="btn btn-outline" type="button" id="team-photos-open">Le nostre foto di gruppo</button>
+    </div>
+  </div>
+</section>
+
+<div class="modal team-photos-modal" id="team-photos-modal" hidden>
+  <div class="modal-card team-photos-card" role="dialog" aria-modal="true" aria-labelledby="team-photos-title">
+    <button class="icon-close" type="button" id="team-photos-close" aria-label="Chiudi">×</button>
+    <h2 id="team-photos-title">Le nostre foto di gruppo</h2>
+    <div class="team-photos-grid">
+      <img src="../img/foto_gruppo1.png" alt="Foto di gruppo dello staff del Policlinico Nazionale Montessori" onerror="this.style.display='none';" />
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container footer-inner">
+    <span class="footer-text" data-i18n="footer.text">Policlinico Nazionale Montessori — Atlantis RP.</span>
+    <div class="footer-copy">© OspedaleAtlantis - Tutti i contenuti sono gestiti da copyright per fini illustrativi e lavorativi</div>
+  </div>
+</footer>
+
+<script src="../js/api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/i18n.js?v=20260714-2"></script>
+<script src="../js/main.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/site-menu.js"></script>
+<script>
+  document.getElementById("ecg-slot").innerHTML = renderEcgDivider();
+  document.querySelectorAll(".team-photo .section-head").forEach(function (el) { el.remove(); });
+  var teamPhotosModal = document.getElementById("team-photos-modal");
+  document.getElementById("team-photos-open").addEventListener("click", function () { teamPhotosModal.hidden = false; });
+  document.getElementById("team-photos-close").addEventListener("click", function () { teamPhotosModal.hidden = true; });
+  teamPhotosModal.addEventListener("click", function (event) { if (event.target === teamPhotosModal) teamPhotosModal.hidden = true; });
+</script>
+</body>
+</html>
