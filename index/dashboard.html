@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Area Riservata — Policlinico Nazionale Montessori</title>
+<link rel="stylesheet" href="../css/style.css" />
+<script>(function(){var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+<!-- Card di benvenuto: sempre in alto e centrata, per tutti i ruoli -->
+<div class="auth-shell">
+  <div class="auth-card" style="max-width:640px;">
+
+    <img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" class="brand-mark" />
+    <h1>Dashboard</h1>
+    <p class="auth-subtitle">
+      Bentornato/a,
+      <b id="dash-username"></b> —
+      <span id="dash-role"></span>
+    </p>
+
+    <!-- Per tutti gli altri ruoli (non Direzione): pagina normale -->
+    <div id="standard-panels">
+
+    <!-- Schede: si mostrano/nascondono via JS in base al ruolo (staff-segment-bar.js in auth.js) -->
+    <div id="staff-segment-bar" style="margin-top:28px;"></div>
+    <div id="staff-segment-panels">
+
+      <!-- Visibile a tutto il personale: qui si compila il modulo -->
+      <div id="reservation-forms-panel" class="pm-segment-panel" data-seg-panel="richieste" data-seg-label="Compila richiesta">
+        <h2>Modulo Ospedale</h2>
+        <p class="form-note">Compila il modulo e seleziona il servizio richiesto.</p>
+
+        <div style="margin-top:20px;">
+          <div class="form-error" id="hospital-form-error"></div>
+          <div class="form-success" id="hospital-form-success"></div>
+          <form id="hospital-form">
+            <div class="field">
+              <label for="hospital-tipo">Seleziona il servizio</label>
+              <select id="hospital-tipo" name="tipo" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                <option value="" disabled selected>Seleziona</option>
+                <option value="certificato_medico">Certificato Medico</option>
+                <option value="cambio_sesso">Cambio Sesso</option>
+              </select>
+              <p class="form-note" id="hospital-tipo-hint" style="margin-top:8px;"></p>
+            </div>
+            <div class="field"><label for="hospital-nome">Nome</label><input type="text" id="hospital-nome" name="nome" required /></div>
+            <div class="field"><label for="hospital-cognome">Cognome</label><input type="text" id="hospital-cognome" name="cognome" required /></div>
+            <div class="field"><label for="hospital-cf">C.F. (nick)</label><input type="text" id="hospital-cf" name="cf" required placeholder="Nickname in-game" /></div>
+            <div class="field"><label for="hospital-tg">Telegram del paziente</label><input type="text" id="hospital-tg" name="telegram" required placeholder="@usernameTelegram" /></div>
+            <div class="field">
+              <label for="hospital-sesso">Sesso</label>
+              <select id="hospital-sesso" name="sesso" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                <option value="" disabled selected>Seleziona</option>
+                <option value="M">M</option>
+                <option value="F">F</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Invia prenotazione</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Visibile solo a chi può ricevere richieste (Medici/Chirurghi/Dirigente) -->
+      <div id="received-reservations-panel" class="pm-segment-panel" data-seg-panel="ricevute" data-seg-label="Prenotazioni ricevute">
+        <h2>Prenotazioni ricevute</h2>
+        <p class="form-note">Prenotazioni compilate dal personale e indirizzate al tuo ruolo.</p>
+        <div class="reservation-counters" id="reservation-counters"></div>
+        <div class="reservations-list" id="received-reservations-list" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- Visibile a tutti, Direzione compresa: qui ognuno gestisce la propria password -->
+      <div class="pm-segment-panel" data-seg-panel="profilo" data-seg-label="Il mio profilo">
+        <h2>Il mio profilo</h2>
+        <p class="form-note">Nickname: <b id="profile-username-display"></b></p>
+        <div style="margin-top:18px;">
+          <span class="eyebrow">Cosa posso fare</span>
+          <p class="form-note" id="profile-capabilities" style="margin-top:8px;"></p>
+        </div>
+        <p class="form-note" style="margin-top:20px;">Se vuoi cambiare la tua password, generane subito una nuova: te la mostriamo qui, comunicala solo a te stesso/a.</p>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-self-reset-password" style="margin-top:10px;">Reimposta la mia password</button>
+      </div>
+
+    </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Solo per Dirigente e Chirurgo Primario: riquadro largo, serve spazio per la tabella account -->
+<div class="container" id="direction-actions" style="display:none; margin-top:28px; padding-bottom:60px;">
+  <div id="direction-segment-bar"></div>
+  <div id="direction-segment-panels">
+
+    <div class="pm-segment-panel" data-seg-panel="account" data-seg-label="Gestione Account">
+      <div class="panel-card direction-accounts-panel">
+        <div class="section-title-row">
+          <div><span class="eyebrow">Direzione</span><h2>Gestione account</h2></div>
+          <p>Attiva, disattiva (es. depexato o dimissioni volontarie), promuovi o retrocedi gli account del personale.</p>
+        </div>
+        <div class="accounts-table-scroll">
+          <table class="accounts-table">
+            <thead>
+              <tr>
+                <th>Nick</th>
+                <th>Nome e Cognome</th>
+                <th>Ruolo</th>
+                <th>Ruoli Extra</th>
+                <th>Stato</th>
+                <th>Azione</th>
+              </tr>
+            </thead>
+            <tbody id="accounts-tbody-modal"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/ui-dialogs.js"></script>
+<script src="../js/ui-tabs.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/main.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/site-menu.js"></script>
+<script src="../js/reservations.js"></script>
+<script src="../js/staff-directory.js"></script>
+<script>
+  var PM_REQUEST_TYPES = {
+    cambio_sesso: {
+      roles: ["Chirurgo Specializzando", "Chirurgo Strutturato", "Chirurgo Vice Primario", "Chirurgo Primario", "Dirigente"],
+      success: "Prenotazione inviata al Chirurgo.",
+      hint: "La richiesta verrà inviata ai profili dei Chirurghi."
+    },
+    certificato_medico: {
+      roles: ["Medico di Base", "Medico di Laboratorio", "Medico Responsabile Ambulatorio", "Chirurgo Specializzando", "Chirurgo Strutturato", "Chirurgo Vice Primario", "Chirurgo Primario", "Dirigente"],
+      success: "Prenotazione inviata a Medico/Chirurgo.",
+      hint: "La richiesta verrà inviata ai profili dei Medici e dei Chirurghi."
+    }
+  };
+
+  function pmWireHospitalForm(suffix) {
+    var tipoSelect = document.getElementById("hospital-tipo" + suffix);
+    var tipoHint = document.getElementById("hospital-tipo-hint" + suffix);
+    if (!tipoSelect) return;
+    tipoSelect.addEventListener("change", function () {
+      var conf = PM_REQUEST_TYPES[tipoSelect.value];
+      tipoHint.textContent = conf ? conf.hint : "";
+    });
+    var form = document.getElementById("hospital-form" + suffix);
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        var conf = PM_REQUEST_TYPES[tipoSelect.value];
+        if (!conf) {
+          e.preventDefault();
+          var errorBox = document.getElementById("hospital-form-error" + suffix);
+          if (errorBox) { errorBox.textContent = "Seleziona il servizio."; errorBox.style.display = "block"; }
+          return;
+        }
+        pmHandleReservationSubmit(e, tipoSelect.value, conf.roles, conf.success, { error: "hospital-form-error" + suffix, success: "hospital-form-success" + suffix });
+
+        // Per gli infermieri: dopo l'invio, mostra quante prenotazioni hai compilato finora.
+        var user = pmCurrentUser();
+        if (user && user.role.indexOf("Infermiere") === 0) {
+          var counts = pmCountUserReservations(user.username);
+          var successBox = document.getElementById("hospital-form-success" + suffix);
+          if (successBox) {
+            successBox.textContent += " Hai compilato finora " + counts.cambio_sesso + " prenotazioni di Cambio Sesso e " + counts.certificato_medico + " di Certificato Medico.";
+          }
+        }
+      });
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    pmWireHospitalForm("");
+  });
+</script>
+</body>
+</html>

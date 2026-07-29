@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prenotazione Richiesta Medica — Policlinico Nazionale Montessori</title>
+<link rel="stylesheet" href="../css/style.css" />
+<script>(function(){var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-card" style="max-width:560px;">
+
+    <img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" class="brand-mark" />
+    <h1>Prenotazione Richiesta Medica</h1>
+    <p class="auth-subtitle">Riservata al personale del Policlinico. Scegli il tipo di richiesta: verrà inviata ai profili competenti.</p>
+
+    <div id="reservation-denied" class="reservation-denied" style="display:none; margin-top:20px; padding:0;">
+      <p class="form-note">Devi essere autenticato/a con un account del personale per compilare questa prenotazione.</p>
+      <p class="form-note" style="margin-top:10px;"><a href="login.html">Vai al login</a> — <a href="dashboard.html">Torna all'area riservata</a></p>
+    </div>
+
+    <div id="reservation-form-wrap" style="display:none; margin-top:20px;">
+      <div class="form-error" id="reservation-error"></div>
+      <div class="form-success" id="reservation-success"></div>
+
+      <form id="reservation-form">
+        <div class="field">
+          <label for="tipo">Tipo di richiesta</label>
+          <select id="tipo" name="tipo" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+            <option value="" disabled selected>Seleziona</option>
+            <option value="cambio_sesso">Cambio Sesso</option>
+            <option value="certificato_medico">Certificato Medico</option>
+          </select>
+          <p class="form-note" id="tipo-hint" style="margin-top:8px;"></p>
+        </div>
+        <div class="field">
+          <label for="nome">Nome</label>
+          <input type="text" id="nome" name="nome" required />
+        </div>
+        <div class="field">
+          <label for="cognome">Cognome</label>
+          <input type="text" id="cognome" name="cognome" required />
+        </div>
+        <div class="field">
+          <label for="cf">C.F. (nick)</label>
+          <input type="text" id="cf" name="cf" required placeholder="Nickname in-game" />
+        </div>
+        <div class="field">
+          <label for="sesso">Sesso</label>
+          <select id="sesso" name="sesso" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+            <option value="" disabled selected>Seleziona</option>
+            <option value="M">M</option>
+            <option value="F">F</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Invia prenotazione</button>
+      </form>
+
+      <p class="form-note" style="margin-top:18px;"><a href="dashboard.html">Torna all'area riservata</a></p>
+    </div>
+
+  </div>
+</div>
+
+<script src="../js/api.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/main.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/site-menu.js"></script>
+<script src="../js/reservations.js"></script>
+<script>
+  var PM_REQUEST_TYPES = {
+    cambio_sesso: {
+      roles: ["Chirurgo Specializzando", "Chirurgo Strutturato", "Chirurgo Vice Primario", "Chirurgo Primario", "Dirigente"],
+      success: "Prenotazione inviata al Chirurgo.",
+      hint: "La richiesta verrà inviata ai profili dei Chirurghi."
+    },
+    certificato_medico: {
+      roles: ["Medico di Base", "Medico di Laboratorio", "Medico Responsabile Ambulatorio", "Chirurgo Specializzando", "Chirurgo Strutturato", "Chirurgo Vice Primario", "Chirurgo Primario", "Dirigente"],
+      success: "Prenotazione inviata a Medico/Chirurgo.",
+      hint: "La richiesta verrà inviata ai profili dei Medici e dei Chirurghi."
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    pmGuardReservationPage();
+
+    var tipoSelect = document.getElementById("tipo");
+    var tipoHint = document.getElementById("tipo-hint");
+    tipoSelect.addEventListener("change", function () {
+      var conf = PM_REQUEST_TYPES[tipoSelect.value];
+      tipoHint.textContent = conf ? conf.hint : "";
+    });
+
+    var form = document.getElementById("reservation-form");
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        var conf = PM_REQUEST_TYPES[tipoSelect.value];
+        if (!conf) {
+          e.preventDefault();
+          var errorBox = document.getElementById("reservation-error");
+          if (errorBox) {
+            errorBox.textContent = "Seleziona il tipo di richiesta.";
+            errorBox.style.display = "block";
+          }
+          return;
+        }
+        pmHandleReservationSubmit(e, tipoSelect.value, conf.roles, conf.success);
+      });
+    }
+  });
+</script>
+</body>
+</html>
