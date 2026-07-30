@@ -48,7 +48,6 @@ async function pmChangePassword(event) {
 async function pmInitDashboard() {
   const user = await pmLoadCurrentUser();
   if (!user) return window.location.href = 'login.html';
-  if (user.mustChangePassword) return window.location.href = 'login.html';
   const name = document.getElementById('dash-username'), role = document.getElementById('dash-role');
   if (name) name.textContent = user.name + ' (' + user.username + ')';
   if (role) role.textContent = user.role;
