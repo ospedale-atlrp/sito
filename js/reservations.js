@@ -58,29 +58,30 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
 }
 async function pmTakeReservation(id) {
   const user=pmCurrentUser(); if(!user) return;
-  const { data: existing } = await PM_DB.from('reservations').select('citizen_id, type').eq('id', id).maybeSingle();
-  const {error}=await PM_DB.from('reservations').update({status:'presa_in_carico',assigned_staff_id:user.id,assigned_staff_name:user.name||user.username}).eq('id',id);
-  if(error) { pmToast(error.message,'error'); return; }
-  if (existing && typeof pmCreateNotification === 'function') {
-    pmCreateNotification({
-      targetUserId: existing.citizen_id,
-      title: 'Prenotazione presa in carico',
-      body: 'La tua prenotazione di ' + (PM_RESERVATION_LABELS[existing.type] || '') + ' è stata presa in carico da ' + (user.name || user.username) + '.',
-    });
+  const { data, error } = await PM_DB.functions.invoke('take-reservation', { body: { reservationId: id } });
+  let serverMessage = null;
+  if (error && error.context && typeof error.context.json === 'function') {
+    try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
   }
+  if (error || !data || data.error) {
+    pmToast(serverMessage || (data && data.error) || 'Errore nella presa in carico.', 'error');
+    return;
+  }
+  pmToast(data.telegramSent ? 'Prenotazione presa in carico. Paziente avvisato su Telegram.' : 'Prenotazione presa in carico. (Il paziente non ha ancora avviato il bot: avvisato solo sul sito.)', 'success');
 }
 async function pmCloseReservation(id) {
-  const response=await pmPrompt('Risposta per il paziente (verrà usata anche dal bot Telegram quando sarà collegato):','');
-  if(response===null) return;
-  const {error}=await PM_DB.from('reservations').update({status:'chiusa',staff_response:response,closed_at:new Date().toISOString()}).eq('id',id);
+  const ok = await pmConfirm('Chiudere questa pratica? Non sarà più possibile scrivere nella chat.');
+  if (!ok) return;
+  const {error}=await PM_DB.from('reservations').update({status:'chiusa',closed_at:new Date().toISOString()}).eq('id',id);
   if(error) pmToast(error.message,'error');
+  else pmToast('Pratica chiusa.','success');
 }
 function pmReservationRow(r,user) {
   const assigned=r.assigned_staff_id===user.id;
   const patient=`${r.nome} ${r.cognome} (${r.codice_fiscale||'—'})`;
   let action='';
   if(r.status==='inviata') action=`<button class="btn btn-sm btn-primary js-take" data-id="${r.id}">Prendi in carico</button>`;
-  if(r.status==='presa_in_carico' && assigned) action=`<button class="btn btn-sm btn-primary js-close" data-id="${r.id}">Chiudi prenotazione</button>`;
+  if(r.status==='presa_in_carico' && assigned) action=`<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">Apri</button> <button class="btn btn-sm btn-danger js-close" data-id="${r.id}">Chiudi</button>`;
   return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag ${r.type==='cambio_sesso'?'tag-sesso':''}">${PM_RESERVATION_LABELS[r.type]}</span><br><b>${patient}</b><br>Telegram: @${r.telegram_username||'non indicato'}<br>Stato: ${r.status.replaceAll('_',' ')}</div>${action}</div>`;
 }
 async function pmRenderReceivedReservations(listId) {
@@ -91,6 +92,7 @@ async function pmRenderReceivedReservations(listId) {
   list.innerHTML=rows.length?rows.map(r=>pmReservationRow(r,user)).join(''):'<div class="reservations-empty">Nessuna prenotazione in attesa.</div>';
   list.querySelectorAll('.js-take').forEach(b=>b.addEventListener('click',()=>{pmTakeReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
   list.querySelectorAll('.js-close').forEach(b=>b.addEventListener('click',()=>{pmCloseReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
+  list.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id); }));
 }
 async function pmRenderMyReservations(containerId) {
   const el=document.getElementById(containerId),user=pmCurrentUser(); if(!el||!user)return;
