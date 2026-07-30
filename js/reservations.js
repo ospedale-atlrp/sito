@@ -39,11 +39,15 @@ async function pmReservationsForUser(user) {
 async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
   e.preventDefault(); const user=pmCurrentUser(), form=e.target; ids=ids||{error:'reservation-error',success:'reservation-success'};
   if(!pmCanRegister(user)) return pmShowReservationMessage(ids,'Accesso al database non disponibile.',false);
-  const nome=form.nome.value.trim(), cognome=form.cognome.value.trim(), cf=form.cf.value.trim(), telegram=form.telegram.value.trim(), sesso=form.sesso.value;
-  if(!nome||!cognome||!cf||!telegram||!sesso) return pmShowReservationMessage(ids,'Compila tutti i campi.',false);
+  const nome=form.nome.value.trim(), cognome=form.cognome.value.trim(), cf=form.cf.value.trim(), sesso=form.sesso.value;
+  // Se il form ha un campo "telegram" manuale (compilazione da parte dello
+  // staff per conto di qualcuno) lo usiamo; altrimenti (form del paziente,
+  // che compila per sé) usiamo il Telegram già collegato al suo login.
+  const telegram = form.telegram ? form.telegram.value.trim().replace(/^@/,'').trim() : (user.telegramUsername || '');
+  if(!nome||!cognome||!cf||!sesso) return pmShowReservationMessage(ids,'Compila tutti i campi.',false);
   const {error}=await PM_DB.from('reservations').insert({
     citizen_id:user.id, citizen_username:user.username, type, nome, cognome, codice_fiscale:cf,
-    sesso, telegram_username:telegram.replace(/^@/,'').trim(), target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata'
+    sesso, telegram_username:telegram, target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata'
   });
   if(error) return pmShowReservationMessage(ids,error.message,false);
   pmShowReservationMessage(ids,successMsg+' La richiesta è stata inviata al personale competente.',true); form.reset();
@@ -94,11 +98,55 @@ async function pmRenderReceivedReservations(listId) {
   list.querySelectorAll('.js-close').forEach(b=>b.addEventListener('click',()=>{pmCloseReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
   list.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id); }));
 }
+function pmMyReservationRow(r) {
+  const statusLabel = { inviata: 'In attesa', presa_in_carico: 'Presa in carico', chiusa: 'Chiusa' }[r.status] || r.status.replaceAll('_',' ');
+  let action = '';
+  if (r.status === 'presa_in_carico') {
+    action = `<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">Apri chat</button>`;
+  }
+  const assignedInfo = r.assigned_staff_name ? `<br>Seguito da: ${r.assigned_staff_name}` : '';
+  return `<div class="reservation-row"><div class="res-info"><b>${PM_RESERVATION_LABELS[r.type]}</b><br>${r.nome} ${r.cognome} — <b>${statusLabel}</b>${assignedInfo}</div>${action}</div>`;
+}
 async function pmRenderMyReservations(containerId) {
   const el=document.getElementById(containerId),user=pmCurrentUser(); if(!el||!user)return;
   const rows=(await pmReservationsForUser(user)).filter(r=>r.citizen_id===user.id);
-  el.innerHTML=rows.length?rows.map(r=>`<div class="reservation-row"><div class="res-info"><b>${PM_RESERVATION_LABELS[r.type]}</b><br>${r.nome} ${r.cognome} — ${r.status.replaceAll('_',' ')}</div></div>`).join(''):'<div class="reservations-empty">Non hai ancora creato prenotazioni.</div>';
+  el.innerHTML=rows.length?rows.map(pmMyReservationRow).join(''):'<div class="reservations-empty">Non hai ancora creato prenotazioni.</div>';
+  el.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id); }));
 }
 function pmRenderReservationCounters(){}
 function pmRenderApprovedCounters(){}
 function pmCountUserReservations(){return {cambio_sesso:0,certificato_medico:0};}
+
+/* Inizializza la sezione dashboard dedicata ai pazienti (ruolo "Cittadino"):
+   monta le schede, collega il form di nuova prenotazione e mostra l'elenco
+   delle proprie prenotazioni. */
+async function pmInitPatientDashboard(user) {
+  const display = document.getElementById('patient-username-display');
+  if (display) display.textContent = user.username;
+
+  const bar = document.getElementById('patient-segment-bar');
+  const panels = document.getElementById('patient-segment-panels');
+  if (bar && panels && typeof pmMountSegments === 'function') {
+    pmMountSegments(bar, panels, {
+      onActivate: (id) => { if (id === 'mie') pmRenderMyReservations('my-reservations-list'); },
+    });
+  }
+
+  const form = document.getElementById('patient-reservation-form');
+  if (form && !form.dataset.wired) {
+    form.dataset.wired = '1';
+    form.addEventListener('submit', (e) => {
+      const tipo = form.tipo.value;
+      const conf = PM_RECIPIENTS[tipo];
+      if (!conf) {
+        e.preventDefault();
+        pmShowReservationMessage({ error: 'patient-form-error', success: 'patient-form-success' }, 'Seleziona il servizio.', false);
+        return;
+      }
+      pmHandleReservationSubmit(e, tipo, conf, 'Prenotazione inviata.', { error: 'patient-form-error', success: 'patient-form-success' })
+        .then(() => pmRenderMyReservations('my-reservations-list'));
+    });
+  }
+
+  await pmRenderMyReservations('my-reservations-list');
+}
