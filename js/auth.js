@@ -29,10 +29,6 @@ async function pmInitDashboard() {
   if (role) role.textContent = user.role;
   const profileDisplay = document.getElementById('profile-username-display');
   if (profileDisplay) profileDisplay.textContent = user.username;
-  const capsEl = document.getElementById('profile-capabilities');
-  if (capsEl && typeof pmCapabilitiesSummary === 'function') {
-    capsEl.textContent = pmCapabilitiesSummary(user);
-  }
 
   const isManagement = PM_ADMIN_ROLES.includes(user.role);
 
