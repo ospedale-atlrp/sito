@@ -24,6 +24,7 @@
     <!-- Per tutti gli altri ruoli (non Direzione): pagina normale -->
     <div id="standard-panels">
 
+    <div id="staff-panels-wrapper">
     <!-- Schede: si mostrano/nascondono via JS in base al ruolo (staff-segment-bar.js in auth.js) -->
     <div id="staff-segment-bar" style="margin-top:28px;"></div>
     <div id="staff-segment-panels">
@@ -77,6 +78,58 @@
         <p class="form-note">Nickname: <b id="profile-username-display"></b></p>
       </div>
 
+    </div>
+
+    </div><!-- /staff-panels-wrapper -->
+
+    <!-- Visibile solo ai pazienti (ruolo "Cittadino"): prenotazioni proprie -->
+    <div id="patient-panels-wrapper" style="display:none;">
+      <div id="patient-segment-bar" style="margin-top:28px;"></div>
+      <div id="patient-segment-panels">
+
+        <div class="pm-segment-panel" data-seg-panel="nuova" data-seg-label="Nuova prenotazione">
+          <h2>Prenota un servizio</h2>
+          <p class="form-note">Compila il modulo per richiedere un servizio del Policlinico.</p>
+          <div style="margin-top:20px;">
+            <div class="form-error" id="patient-form-error"></div>
+            <div class="form-success" id="patient-form-success"></div>
+            <form id="patient-reservation-form">
+              <div class="field">
+                <label for="patient-tipo">Seleziona il servizio</label>
+                <select id="patient-tipo" name="tipo" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                  <option value="" disabled selected>Seleziona</option>
+                  <option value="certificato_medico">Certificato Medico</option>
+                  <option value="cambio_sesso">Cambio Sesso</option>
+                </select>
+              </div>
+              <div class="field"><label for="patient-nome">Nome</label><input type="text" id="patient-nome" name="nome" required /></div>
+              <div class="field"><label for="patient-cognome">Cognome</label><input type="text" id="patient-cognome" name="cognome" required /></div>
+              <div class="field"><label for="patient-cf">C.F. (nick)</label><input type="text" id="patient-cf" name="cf" required placeholder="Nickname in-game" /></div>
+              <div class="field">
+                <label for="patient-sesso">Sesso</label>
+                <select id="patient-sesso" name="sesso" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                  <option value="" disabled selected>Seleziona</option>
+                  <option value="M">M</option>
+                  <option value="F">F</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Invia prenotazione</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="pm-segment-panel" data-seg-panel="mie" data-seg-label="Le mie prenotazioni">
+          <h2>Le mie prenotazioni</h2>
+          <p class="form-note">Stato delle richieste che hai inviato. Apri la chat una volta prese in carico.</p>
+          <div class="reservations-list" id="my-reservations-list" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="pm-segment-panel" data-seg-panel="profilo-paziente" data-seg-label="Il mio profilo">
+          <h2>Il mio profilo</h2>
+          <p class="form-note">Nickname: <b id="patient-username-display"></b></p>
+        </div>
+
+      </div>
     </div>
 
     </div>
