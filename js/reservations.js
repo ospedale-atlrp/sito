@@ -99,23 +99,6 @@ async function pmRenderMyReservations(containerId) {
   const rows=(await pmReservationsForUser(user)).filter(r=>r.citizen_id===user.id);
   el.innerHTML=rows.length?rows.map(r=>`<div class="reservation-row"><div class="res-info"><b>${PM_RESERVATION_LABELS[r.type]}</b><br>${r.nome} ${r.cognome} — ${r.status.replaceAll('_',' ')}</div></div>`).join(''):'<div class="reservations-empty">Non hai ancora creato prenotazioni.</div>';
 }
-function pmCapabilitiesSummary(user) {
-  const sentences = [];
-  if (typeof PM_ADMIN_ROLES !== 'undefined' && PM_ADMIN_ROLES.includes(user.role)) {
-    sentences.push('Puoi creare, modificare, disattivare ed eliminare gli account del personale');
-    sentences.push(user.role === 'Dirigente' ? 'puoi assegnare qualsiasi ruolo, compreso Chirurgo Primario' : 'puoi assegnare ruoli da Chirurgo Vice Primario in giù');
-  }
-  if (pmCanCompileReservation(user)) {
-    sentences.push('puoi compilare richieste di Certificato Medico e Cambio Sesso nel modulo ospedale');
-  } else {
-    sentences.push('non puoi compilare richieste del modulo ospedale, riservato al personale da Infermiere Assistente in su');
-  }
-  if (pmIsReservationRecipient(user)) {
-    const certOnly = PM_RECIPIENTS.certificato_medico.includes(user.role) && !PM_RECIPIENTS.cambio_sesso.includes(user.role);
-    sentences.push(certOnly ? 'ricevi e gestisci le richieste di Certificato Medico indirizzate al tuo ruolo' : 'ricevi e gestisci le richieste di Certificato Medico e Cambio Sesso indirizzate al tuo ruolo');
-  }
-  return sentences.join(', ') + '.';
-}
 function pmRenderReservationCounters(){}
 function pmRenderApprovedCounters(){}
 function pmCountUserReservations(){return {cambio_sesso:0,certificato_medico:0};}
