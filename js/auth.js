@@ -9,7 +9,6 @@ const PM_ROLES = [
 const PM_ADMIN_ROLES = ['Chirurgo Primario', 'Dirigente', 'Admin'];
 let PM_CURRENT_USER = null;
 function pmCurrentUser() { return PM_CURRENT_USER; }
-function pmUserEmail(username) { return String(username || '').trim().toLowerCase() + '@atlantis-rp.local'; }
 async function pmLogout() { if (window.PM_DB) await PM_DB.auth.signOut(); PM_CURRENT_USER = null; window.location.href = 'login.html'; }
 async function pmLoadCurrentUser() {
   if (!window.PM_DB) return null;
@@ -21,29 +20,6 @@ async function pmLoadCurrentUser() {
   return PM_CURRENT_USER;
 }
 function pmShowLoginError(text) { const el = document.getElementById('login-error'); if (el) { el.textContent = text; el.classList.add('show'); } }
-async function pmLogin(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const { error } = await PM_DB.auth.signInWithPassword({ email: pmUserEmail(form.username.value), password: form.password.value });
-  if (error) return pmShowLoginError('Username o password non corretti.');
-  const user = await pmLoadCurrentUser();
-  if (!user) return pmShowLoginError('Questo account non è attivo.');
-  if (user.mustChangePassword) { document.getElementById('step-login').style.display = 'none'; document.getElementById('step-firstaccess').style.display = 'block'; return; }
-  window.location.href = 'dashboard.html';
-}
-async function pmChangePassword(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const errorBox = document.getElementById('firstaccess-error');
-  if (errorBox) { errorBox.textContent = ''; errorBox.classList.remove('show'); }
-  if (form.newPassword.value.length < 8) { if (errorBox) { errorBox.textContent = 'La password deve contenere almeno 8 caratteri.'; errorBox.classList.add('show'); } return; }
-  if (form.newPassword.value !== form.newPasswordConfirm.value) { if (errorBox) { errorBox.textContent = 'Le due password non coincidono.'; errorBox.classList.add('show'); } return; }
-  const { error } = await PM_DB.auth.updateUser({ password: form.newPassword.value });
-  if (error) { if (errorBox) { errorBox.textContent = error.message; errorBox.classList.add('show'); } return; }
-  const { error: profileError } = await PM_DB.rpc('mark_password_changed');
-  if (profileError) { if (errorBox) { errorBox.textContent = profileError.message; errorBox.classList.add('show'); } return; }
-  window.location.href = 'dashboard.html';
-}
 
 async function pmInitDashboard() {
   const user = await pmLoadCurrentUser();
@@ -94,29 +70,8 @@ async function pmInitDashboard() {
   if (typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list');
   if (typeof pmRenderStaffDirectory === 'function') pmRenderStaffDirectory();
   if (typeof pmRenderSiteMenu === 'function') await pmRenderSiteMenu();
-
-  const resetBtn = document.getElementById('btn-self-reset-password');
-  if (resetBtn && !resetBtn.dataset.wired) {
-    resetBtn.dataset.wired = '1';
-    resetBtn.addEventListener('click', async () => {
-      if (!window.PM_DB) return;
-      const { data, error } = await PM_DB.functions.invoke('manage-staff', { body: { action: 'reset-own-password' } });
-      let serverMessage = null;
-      if (error && error.context && typeof error.context.json === 'function') {
-        try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
-      }
-      if (error || !data || data.error) {
-        if (typeof pmToast === 'function') pmToast(serverMessage || (data && data.error) || 'Errore nel reset della password.', 'error');
-        return;
-      }
-      if (typeof pmShowGeneratedPassword === 'function') await pmShowGeneratedPassword(data.password);
-      else if (typeof pmAlert === 'function') await pmAlert('Nuova password: ' + data.password);
-    });
-  }
 }
 document.addEventListener('DOMContentLoaded', function () {
-  const login = document.getElementById('login-form'); if (login) login.addEventListener('submit', pmLogin);
-  const change = document.getElementById('firstaccess-form'); if (change) change.addEventListener('submit', pmChangePassword);
   if (document.getElementById('dash-username')) {
     pmInitDashboard();
   } else {
