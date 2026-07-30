@@ -14,9 +14,9 @@ async function pmLoadCurrentUser() {
   if (!window.PM_DB) return null;
   const { data: sessionData } = await PM_DB.auth.getSession();
   if (!sessionData.session) return null;
-  const { data: profile } = await PM_DB.from('profiles').select('username, display_name, role, extra_roles, active, must_change_password').eq('id', sessionData.session.user.id).maybeSingle();
+  const { data: profile } = await PM_DB.from('profiles').select('username, display_name, role, extra_roles, active, must_change_password, telegram_username').eq('id', sessionData.session.user.id).maybeSingle();
   if (!profile || !profile.active) { await PM_DB.auth.signOut(); return null; }
-  PM_CURRENT_USER = { id: sessionData.session.user.id, username: profile.username, name: profile.display_name || profile.username, role: profile.role, extraRoles: profile.extra_roles || [], mustChangePassword: profile.must_change_password };
+  PM_CURRENT_USER = { id: sessionData.session.user.id, username: profile.username, name: profile.display_name || profile.username, role: profile.role, extraRoles: profile.extra_roles || [], mustChangePassword: profile.must_change_password, telegramUsername: profile.telegram_username };
   return PM_CURRENT_USER;
 }
 function pmShowLoginError(text) { const el = document.getElementById('login-error'); if (el) { el.textContent = text; el.classList.add('show'); } }
@@ -29,6 +29,18 @@ async function pmInitDashboard() {
   if (role) role.textContent = user.role;
   const profileDisplay = document.getElementById('profile-username-display');
   if (profileDisplay) profileDisplay.textContent = user.username;
+
+  const isPatient = user.role === 'Cittadino';
+  const staffSection = document.getElementById('staff-panels-wrapper');
+  const patientSection = document.getElementById('patient-panels-wrapper');
+  if (staffSection) staffSection.style.display = isPatient ? 'none' : '';
+  if (patientSection) patientSection.style.display = isPatient ? '' : 'none';
+
+  if (isPatient) {
+    if (typeof pmInitPatientDashboard === 'function') await pmInitPatientDashboard(user);
+    if (typeof pmRenderSiteMenu === 'function') await pmRenderSiteMenu();
+    return;
+  }
 
   const isManagement = PM_ADMIN_ROLES.includes(user.role);
 
