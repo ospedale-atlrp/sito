@@ -46,6 +46,14 @@
 <script>
   var PM_TELEGRAM_BOT_USERNAME = "OspSito_bot";
 
+  // Protezione anti doppio-invio: se il widget Telegram richiama la funzione
+  // più di una volta (doppio click, ricaricamento del bottone, ecc.), ogni
+  // nuovo "biglietto" di accesso genererebbe l'invalidazione di quello
+  // precedente lato Supabase, causando l'errore "Token has expired or is
+  // invalid" anche se il primo tentativo era valido. Con questo blocco
+  // accettiamo solo la PRIMA chiamata, finché non finisce (o fallisce).
+  var pmLoginInFlight = false;
+
   function pmShowLoginError(text) {
     var el = document.getElementById('login-error');
     if (el) { el.textContent = text; el.classList.add('show'); }
@@ -53,6 +61,9 @@
 
   // Chiamata da Telegram stesso quando la persona conferma l'accesso nel widget.
   async function pmTelegramAuth(telegramUser) {
+    if (pmLoginInFlight) return; // ignora chiamate duplicate
+    pmLoginInFlight = true;
+
     var loading = document.getElementById('telegram-login-loading');
     if (loading) loading.style.display = 'block';
     try {
@@ -73,6 +84,7 @@
     } catch (e) {
       if (loading) loading.style.display = 'none';
       pmShowLoginError(e.message || 'Accesso Telegram non riuscito. Riprova.');
+      pmLoginInFlight = false; // permette un nuovo tentativo dopo un errore
     }
   }
 
@@ -80,6 +92,11 @@
   document.addEventListener('DOMContentLoaded', function () {
     var container = document.getElementById('telegram-login-widget');
     if (!container) return;
+    // Evita di generare il bottone due volte se questo script per qualche
+    // motivo venisse eseguito più di una volta sulla stessa pagina.
+    if (container.dataset.wired) return;
+    container.dataset.wired = '1';
+
     var script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
     script.async = true;
