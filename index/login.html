@@ -77,7 +77,7 @@
         throw new Error(serverMessage || (data && data.error) || 'Accesso Telegram non riuscito.');
       }
 
-      var verify = await PM_DB.auth.verifyOtp({ email: data.email, token: data.tokenHash, type: 'magiclink' });
+      var verify = await PM_DB.auth.verifyOtp({ token_hash: data.tokenHash, type: 'magiclink' });
       if (verify.error) throw verify.error;
 
       window.location.href = 'dashboard.html';
