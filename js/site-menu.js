@@ -61,8 +61,14 @@ function pmInjectSiteMenuStyle() {
     .site-menu-item:hover { background:rgba(127,127,127,0.14); }
     .site-menu-item.active { font-weight:700; background:rgba(127,127,127,0.12); }
     .notification-menu-button { justify-content:space-between; }
+    .notice-btn-right { display:flex; align-items:center; gap:7px; }
     .menu-notice-count { background:#c0392b; font-size:0.7rem; padding:1px 7px; border-radius:999px; min-width:17px; text-align:center; }
-    .menu-notice-list { margin-top:4px; display:flex; flex-direction:column; gap:4px; max-height:120px; overflow-y:auto; }
+    .menu-notice-count.is-zero { background:rgba(127,127,127,0.35); }
+    .menu-notice-arrow { display:inline-block; font-size:0.7rem; opacity:0.6; transition:transform .18s ease; }
+    .notification-menu-button[aria-expanded="true"] .menu-notice-arrow { transform:rotate(180deg); }
+    .menu-notice-list { max-height:0; opacity:0; margin-top:0; overflow:hidden; display:flex; flex-direction:column; gap:4px;
+      transition:max-height .24s ease, opacity .18s ease, margin-top .24s ease; }
+    .menu-notice-list.open { max-height:240px; opacity:1; margin-top:8px; overflow-y:auto; padding-top:8px; border-top:1px solid rgba(127,127,127,0.18); }
     .notification-item { padding:7px 9px; border-radius:10px; font-size:0.8rem; line-height:1.3; }
     html[data-theme="light"] .notification-item, html:not([data-theme]) .notification-item { background:rgba(0,0,0,0.045); }
     html[data-theme="dark"] .notification-item { background:rgba(255,255,255,0.07); }
@@ -112,7 +118,7 @@ async function pmRenderSiteMenu(){
   if (user) notices = await pmFetchNotifications(user);
   const readIds = pmReadNoticeIds();
   const unread = notices.filter(function (n) { return !readIds.has(n.id); }).length;
-  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices">🔔 Avvisi <span class="menu-notice-count">'+unread+'</span></button><div class="menu-notice-list" id="site-menu-notice-list" hidden>'+pmNoticeList(notices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section">'+pmMenuItem("login.html","Accesso personale","▣")+pmMenuItem("area-personale.html","Area personale Telegram","✈")+'</div>';}
+  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>🔔 Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">▾</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(notices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section">'+pmMenuItem("login.html","Accesso personale","▣")+pmMenuItem("area-personale.html","Area personale Telegram","✈")+'</div>';}
   html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><div class="site-menu-langs site-menu-langs-full"><button data-lang="it" class="'+(lang==="it"?"active":"")+'">IT · Italiano</button><button data-lang="es" class="'+(lang==="es"?"active":"")+'">ESP · Spagnolo</button><button data-lang="en" class="'+(lang==="en"?"active":"")+'">ENG · Inglese</button></div></div>';
   html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">☼<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">☾<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">▣<span>Dispositivo</span></button></div></div>';
   panel.innerHTML=html;
@@ -122,8 +128,14 @@ async function pmRenderSiteMenu(){
   panel.querySelectorAll("[data-theme-choice]").forEach(function(b){b.addEventListener("click",function(){pmSetTheme(b.dataset.themeChoice);});});
   const noticesBtn=document.getElementById("site-menu-notices"),list=document.getElementById("site-menu-notice-list");
   if(noticesBtn&&list)noticesBtn.addEventListener("click",function(){
-    list.hidden=!list.hidden;
-    if(!list.hidden){pmMarkNoticesRead(notices.map(function(n){return n.id;}));const countEl=noticesBtn.querySelector(".menu-notice-count");if(countEl)countEl.textContent="0";}
+    const willOpen=!list.classList.contains("open");
+    list.classList.toggle("open",willOpen);
+    noticesBtn.setAttribute("aria-expanded",String(willOpen));
+    if(willOpen){
+      pmMarkNoticesRead(notices.map(function(n){return n.id;}));
+      const countEl=noticesBtn.querySelector(".menu-notice-count");
+      if(countEl){countEl.textContent="0";countEl.classList.add("is-zero");}
+    }
   });
 }
 function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">Nessun avviso.</div>';}
