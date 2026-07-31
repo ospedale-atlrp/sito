@@ -96,12 +96,19 @@ async function pmCloseReservation(id) {
   if(error) pmToast(error.message,'error');
   else pmToast('Pratica chiusa.','success');
 }
+async function pmDeleteReservation(id) {
+  const ok = await pmConfirm('Eliminare questa prenotazione? L\'operazione non è reversibile.');
+  if (!ok) return;
+  const {error}=await PM_DB.from('reservations').delete().eq('id',id);
+  if(error) pmToast(error.message,'error');
+  else pmToast('Prenotazione eliminata.','success');
+}
 function pmReservationRow(r,user) {
   const assigned=r.assigned_staff_id===user.id;
   const patient=`${r.nome} ${r.cognome} (${r.codice_fiscale||'—'})`;
   const agonisticoInfo = r.type==='certificato_medico' ? `<br>Agonistico: <b>${r.agonistico==='si'?'Sì':'No'}</b>` : '';
   let action='';
-  if(r.status==='inviata') action=`<button class="btn btn-sm btn-primary js-take" data-id="${r.id}">Prendi in carico</button>`;
+  if(r.status==='inviata') action=`<button class="btn btn-sm btn-primary js-take" data-id="${r.id}">Prendi in carico</button> <button class="btn btn-sm btn-danger js-delete" data-id="${r.id}">Elimina</button>`;
   if(r.status==='presa_in_carico' && assigned) action=`<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">Apri</button> <button class="btn btn-sm btn-danger js-close" data-id="${r.id}">Chiudi</button>`;
   return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag ${r.type==='cambio_sesso'?'tag-sesso':''}">${PM_RESERVATION_LABELS[r.type]}</span><br><b>${patient}</b>${agonisticoInfo}<br>Telegram: @${r.telegram_username||'non indicato'}<br>Stato: ${r.status.replaceAll('_',' ')}</div>${action}</div>`;
 }
@@ -113,6 +120,7 @@ async function pmRenderReceivedReservations(listId) {
   list.innerHTML=rows.length?rows.map(r=>pmReservationRow(r,user)).join(''):'<div class="reservations-empty">Nessuna prenotazione in attesa.</div>';
   list.querySelectorAll('.js-take').forEach(b=>b.addEventListener('click',()=>{pmTakeReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
   list.querySelectorAll('.js-close').forEach(b=>b.addEventListener('click',()=>{pmCloseReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
+  list.querySelectorAll('.js-delete').forEach(b=>b.addEventListener('click',()=>{pmDeleteReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
   list.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id); }));
 }
 function pmMyReservationRow(r) {
