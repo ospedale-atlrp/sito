@@ -7,7 +7,6 @@
   const roleOptions = (selected, includeSelected = true) => { const roles = editableRoles(); const visible = includeSelected && !roles.includes(selected) ? [selected].concat(roles) : roles; return '<option value="" disabled>Seleziona un ruolo</option>'+visible.map(role => '<option '+(role === selected ? 'selected' : '')+'>'+esc(role)+'</option>').join(''); };
   const extraOptions = selected => '<div class="extra-role-pills">'+extras.map(extra => '<label class="extra-role-pill"><input type="checkbox" value="'+extra+'" '+(selected.includes(extra) ? 'checked' : '')+'><span>'+extra+'</span></label>').join('')+'</div>';
   function isManager() { const u = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; return u && ['Dirigente','Chirurgo Primario','Admin'].includes(u.role); }
-  function isSuperAdmin() { const u = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; return !!u && u.role === 'Admin'; }
   async function invoke(action, payload) {
     const { data, error } = await PM_DB.functions.invoke('manage-staff', { body: { action, ...payload } });
     if (error) {
@@ -28,14 +27,14 @@
     const table = document.getElementById('accounts-tbody-modal');
     if (!table || !window.PM_DB) return;
     const { data, error } = await PM_DB.from('staff_directory').select('username, display_name, role, extra_roles, active');
-    if (error) { table.innerHTML = '<tr><td colspan="6">Impossibile caricare l’organico.</td></tr>'; return; }
+    if (error) { table.innerHTML = '<tr><td colspan="6">Impossibile caricare l\u2019organico.</td></tr>'; return; }
     const roleIndex = role => { const index = allRoles().indexOf(role); return index === -1 ? 999 : index; };
     const ordered = (data || []).slice().sort((a, b) => roleIndex(a.role) - roleIndex(b.role) || a.display_name.localeCompare(b.display_name, 'it'));
     table.innerHTML = ordered.map(person => {
       const selectedExtras = person.extra_roles || [];
       const locked = selectedExtras.includes('Board');
       const editable = editableRoles().includes(person.role);
-      return '<tr data-username="'+esc(person.username)+'"><td><input class="staff-text-input js-username" value="'+esc(person.username)+'"></td><td><input class="staff-text-input js-name" value="'+esc(person.display_name)+'"></td><td>'+ (editable ? '<select class="staff-role-select js-role">'+roleOptions(person.role)+'</select>' : '<span class="staff-role-label">'+esc(person.role)+'</span>') +'</td><td><div class="js-extras">'+extraOptions(selectedExtras)+'</div></td><td>'+ (person.active ? '<span class="staff-status is-active">Attivo</span>' : '<span class="staff-status">Disattivato</span>') +'</td><td><div class="staff-action-buttons"><button class="btn btn-sm btn-primary js-details">Aggiorna dati</button> '+(isSuperAdmin() ? '<button class="btn btn-sm btn-outline js-reset">Reset password 123456</button> ' : '')+(locked ? '<span class="staff-board-lock">Board protetto</span>' : '<button class="btn btn-sm btn-danger js-delete">Elimina</button>')+'</div></td></tr>';
+      return '<tr data-username="'+esc(person.username)+'"><td><input class="staff-text-input js-username" value="'+esc(person.username)+'"></td><td><input class="staff-text-input js-name" value="'+esc(person.display_name)+'"></td><td>'+ (editable ? '<select class="staff-role-select js-role">'+roleOptions(person.role)+'</select>' : '<span class="staff-role-label">'+esc(person.role)+'</span>') +'</td><td><div class="js-extras">'+extraOptions(selectedExtras)+'</div></td><td>'+ (person.active ? '<span class="staff-status is-active">Attivo</span>' : '<span class="staff-status">Disattivato</span>') +'</td><td><div class="staff-action-buttons"><button class="btn btn-sm btn-primary js-details">Aggiorna dati</button> '+(locked ? '<span class="staff-board-lock">Board protetto</span>' : '<button class="btn btn-sm btn-danger js-fire">Licenzia</button>')+'</div></td></tr>';
     }).join('') || '<tr><td colspan="6">Nessun dipendente trovato.</td></tr>';
     if (isManager()) bindRows(table); else table.querySelectorAll('select,input,button').forEach(el => el.disabled = true);
   }
@@ -51,21 +50,14 @@
           extraRoles: readExtras(row.querySelector('.js-extras')),
         };
         if (roleSelect) payload.role = roleSelect.value;
-        try { await invoke('update-details', payload); await renderDirectory(); pmToast('Dati aggiornati.', 'success'); } catch (e) { pmToast(e.message || 'Errore nell’aggiornamento dati.', 'error'); }
+        try { await invoke('update-details', payload); await renderDirectory(); pmToast('Dati aggiornati.', 'success'); } catch (e) { pmToast(e.message || 'Errore nell\u2019aggiornamento dati.', 'error'); }
       };
-      const reset = row.querySelector('.js-reset'); if (reset) reset.onclick = async () => {
-        if (!(await pmConfirm('Reimpostare la password di ' + username + ' a 123456?'))) return;
-        try { await invoke('reset-password', { username, password: '123456' }); pmToast('Password reimpostata a 123456: al prossimo accesso dovrà essere cambiata.', 'success'); }
-        catch (e) { pmToast(e.message || 'Errore.', 'error'); }
-      };
-      const del = row.querySelector('.js-delete'); if (del) del.onclick = async () => {
-        if (!(await pmConfirm('Eliminare ' + username + '?'))) return;
-        try { await invoke('delete', { username }); await renderDirectory(); pmToast('Account eliminato.', 'success'); }
+      const fire = row.querySelector('.js-fire'); if (fire) fire.onclick = async () => {
+        if (!(await pmConfirm('Licenziare ' + username + '? Il suo account rester\u00e0 attivo ma torner\u00e0 automaticamente "Cittadino" (paziente).'))) return;
+        try { await invoke('fire', { username }); await renderDirectory(); pmToast(username + ' licenziato: ora \u00e8 un Cittadino.', 'success'); }
         catch (e) { pmToast(e.message || 'Errore.', 'error'); }
       };
     });
-    let box = document.getElementById('new-staff-account');
-    if (!box) { box = document.createElement('form'); box.id = 'new-staff-account'; box.className = 'new-bando-form staff-create-form'; const defaults = editableRoles(); box.innerHTML = '<h3>Aggiungi dipendente</h3><div class="field"><label>Username</label><input name="username" required placeholder="es. Mario_Rossi"></div><div class="field"><label>Nome e cognome</label><input name="displayName" required></div><div class="field"><label>Ruolo</label><select class="staff-role-select" name="role"><option value="" disabled selected>Seleziona un ruolo</option>'+defaults.map(role => '<option>'+esc(role)+'</option>').join('')+'</select></div><div class="field js-new-extras"><label>Ruoli extra</label>'+extraOptions([])+'</div><button class="btn btn-primary btn-sm">Crea account con password 123456</button>'; table.closest('.panel-card').appendChild(box); box.onsubmit = async event => { event.preventDefault(); try { await invoke('create', { username: box.username.value, displayName: box.displayName.value, role: box.role.value, extraRoles: readExtras(box.querySelector('.js-new-extras')), password: '123456' }); box.reset(); await renderDirectory(); pmToast('Account creato. Password temporanea: 123456', 'success'); } catch (e) { pmToast(e.message || 'Errore nella creazione.', 'error'); } }; }
   }
   window.pmRenderStaffDirectory = renderDirectory;
   document.addEventListener('DOMContentLoaded', renderDirectory);
