@@ -74,6 +74,7 @@ async function pmInitDashboard() {
   if (isManagement && directionPanels && typeof pmMountSegments === 'function') {
     pmMountSegments(directionBar, directionPanels);
   }
+  if (isManagement && typeof pmRenderPromotionCreatePanel === 'function') pmRenderPromotionCreatePanel();
 
   if (typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list');
   if (typeof pmRenderStaffDirectory === 'function') pmRenderStaffDirectory();
