@@ -40,12 +40,14 @@
           <form id="hospital-form">
             <div class="field" id="hospital-modalita-field">
               <label>Tipo di prenotazione</label>
-              <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
-                <label style="flex:1; min-width:180px; display:flex; align-items:center; gap:6px; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line); cursor:pointer; font-size:0.9rem;">
-                  <input type="radio" name="modalita" value="pazienti" checked /> Prenotazione x Pazienti
+              <div class="modalita-toggle" style="margin-top:6px;">
+                <label class="modalita-option">
+                  <input type="radio" name="modalita" value="pazienti" checked />
+                  Prenotazione x Pazienti
                 </label>
-                <label style="flex:1; min-width:180px; display:flex; align-items:center; gap:6px; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line); cursor:pointer; font-size:0.9rem;">
-                  <input type="radio" name="modalita" value="me_stesso" /> Prenotazione x Me Stesso
+                <label class="modalita-option">
+                  <input type="radio" name="modalita" value="me_stesso" />
+                  Prenotazione x Me Stesso
                 </label>
               </div>
             </div>
