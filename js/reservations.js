@@ -40,18 +40,26 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
   e.preventDefault(); const user=pmCurrentUser(), form=e.target; ids=ids||{error:'reservation-error',success:'reservation-success'};
   if(!pmCanRegister(user)) return pmShowReservationMessage(ids,'Accesso al database non disponibile.',false);
   const nome=form.nome.value.trim(), cognome=form.cognome.value.trim(), cf=form.cf.value.trim(), sesso=form.sesso.value;
-  // Se il form ha un campo "telegram" manuale (compilazione da parte dello
-  // staff per conto di qualcuno) lo usiamo; altrimenti (form del paziente,
-  // che compila per sé) usiamo il Telegram già collegato al suo login.
-  const telegram = form.telegram ? form.telegram.value.trim().replace(/^@/,'').trim() : (user.telegramUsername || '');
+  // Il modulo dello staff ha un gruppo radio "modalita" (Prenotazione x
+  // Pazienti / x Me Stesso); il modulo del paziente per sé non ce l'ha
+  // (form.modalita è null in quel caso).
+  const modalita = form.modalita ? form.modalita.value : null;
+  const perPaziente = modalita === 'pazienti';
+  // Solo in "x Pazienti" si usa la @ inserita a mano dallo staff; altrimenti
+  // (form del paziente, oppure "x Me Stesso") si usa il Telegram già
+  // collegato al proprio profilo.
+  const telegram = (form.telegram && (perPaziente || modalita === null))
+    ? form.telegram.value.trim().replace(/^@/,'').trim()
+    : (user.telegramUsername || '');
   const agonistico = form.agonistico ? form.agonistico.value : '';
   if(!nome||!cognome||!cf||!sesso) return pmShowReservationMessage(ids,'Compila tutti i campi.',false);
+  if(perPaziente && !telegram) return pmShowReservationMessage(ids,'Inserisci la @ Telegram del paziente.',false);
   if(type==='certificato_medico' && !agonistico) return pmShowReservationMessage(ids,'Seleziona se il certificato è agonistico.',false);
-  const {error}=await PM_DB.from('reservations').insert({
+  const {data:inserted,error}=await PM_DB.from('reservations').insert({
     citizen_id:user.id, citizen_username:user.username, type, nome, cognome, codice_fiscale:cf,
     sesso, telegram_username:telegram, agonistico: type==='certificato_medico' ? agonistico : null,
     target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata'
-  });
+  }).select('id').single();
   if(error) return pmShowReservationMessage(ids,error.message,false);
   pmShowReservationMessage(ids,successMsg+' La richiesta è stata inviata al personale competente.',true); form.reset();
   if (typeof pmCreateNotification === 'function') {
@@ -60,6 +68,11 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
       title: 'Nuova prenotazione',
       body: (user.name || user.username) + ' ha inviato una richiesta di ' + PM_RESERVATION_LABELS[type] + '.',
     });
+  }
+  // Prenotazione "x Pazienti": avvisa la @ indicata che la prenotazione è
+  // stata inviata a suo nome (via bot Telegram, gestito lato server).
+  if (perPaziente && telegram && inserted && inserted.id && window.PM_DB && PM_DB.functions) {
+    PM_DB.functions.invoke('notify-new-reservation', { body: { reservationId: inserted.id } }).catch(function () {});
   }
   pmRenderReceivedReservations('received-reservations-list');
 }
