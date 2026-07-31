@@ -14,12 +14,28 @@ async function pmLoadCurrentUser() {
   if (!window.PM_DB) return null;
   const { data: sessionData } = await PM_DB.auth.getSession();
   if (!sessionData.session) return null;
-  const { data: profile } = await PM_DB.from('profiles').select('username, display_name, role, extra_roles, active, must_change_password, telegram_username').eq('id', sessionData.session.user.id).maybeSingle();
-  if (!profile || !profile.active) { await PM_DB.auth.signOut(); return null; }
+  const { data: profile, error: profileError } = await PM_DB.from('profiles').select('username, display_name, role, extra_roles, active, must_change_password, telegram_username').eq('id', sessionData.session.user.id).maybeSingle();
+  // Se la richiesta del profilo fallisce per un problema temporaneo (rete,
+  // timeout...) NON disconnettiamo l'utente: prima il sito lo faceva, ed era
+  // la causa del bug per cui l'accesso "spariva" tornando semplicemente alla
+  // home. Disconnettiamo solo quando sappiamo per certo che il profilo non
+  // esiste più o è stato disattivato, non quando la richiesta è solo fallita.
+  if (profileError) { console.error('Impossibile verificare il profilo (riprovo alla prossima pagina):', profileError.message); return PM_CURRENT_USER; }
+  if (!profile || !profile.active) { await PM_DB.auth.signOut(); PM_CURRENT_USER = null; return null; }
   PM_CURRENT_USER = { id: sessionData.session.user.id, username: profile.username, name: profile.display_name || profile.username, role: profile.role, extraRoles: profile.extra_roles || [], mustChangePassword: profile.must_change_password, telegramUsername: profile.telegram_username };
   return PM_CURRENT_USER;
 }
 function pmShowLoginError(text) { const el = document.getElementById('login-error'); if (el) { el.textContent = text; el.classList.add('show'); } }
+
+/* Bottone principale della home ("Accedi con Telegram" / "Vai alla dashboard").
+   Non fa nulla se l'elemento #home-cta-link non esiste in pagina, quindi è
+   sicuro includerlo ovunque. */
+function pmUpdateHomeCta(user) {
+  const link = document.getElementById('home-cta-link');
+  if (!link) return;
+  if (user) { link.href = 'dashboard.html'; link.innerHTML = '▣ Vai alla dashboard'; }
+  else { link.href = 'login.html'; link.innerHTML = '✈ Accedi con Telegram'; }
+}
 
 async function pmInitDashboard() {
   const user = await pmLoadCurrentUser();
@@ -84,8 +100,9 @@ document.addEventListener('DOMContentLoaded', function () {
   if (document.getElementById('dash-username')) {
     pmInitDashboard();
   } else {
-    pmLoadCurrentUser().then(function () {
+    pmLoadCurrentUser().then(function (user) {
       if (typeof pmRenderSiteMenu === 'function') pmRenderSiteMenu();
+      pmUpdateHomeCta(user);
     });
   }
 });
