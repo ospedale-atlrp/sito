@@ -44,10 +44,13 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
   // staff per conto di qualcuno) lo usiamo; altrimenti (form del paziente,
   // che compila per sé) usiamo il Telegram già collegato al suo login.
   const telegram = form.telegram ? form.telegram.value.trim().replace(/^@/,'').trim() : (user.telegramUsername || '');
+  const agonistico = form.agonistico ? form.agonistico.value : '';
   if(!nome||!cognome||!cf||!sesso) return pmShowReservationMessage(ids,'Compila tutti i campi.',false);
+  if(type==='certificato_medico' && !agonistico) return pmShowReservationMessage(ids,'Seleziona se il certificato è agonistico.',false);
   const {error}=await PM_DB.from('reservations').insert({
     citizen_id:user.id, citizen_username:user.username, type, nome, cognome, codice_fiscale:cf,
-    sesso, telegram_username:telegram, target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata'
+    sesso, telegram_username:telegram, agonistico: type==='certificato_medico' ? agonistico : null,
+    target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata'
   });
   if(error) return pmShowReservationMessage(ids,error.message,false);
   pmShowReservationMessage(ids,successMsg+' La richiesta è stata inviata al personale competente.',true); form.reset();
@@ -83,10 +86,11 @@ async function pmCloseReservation(id) {
 function pmReservationRow(r,user) {
   const assigned=r.assigned_staff_id===user.id;
   const patient=`${r.nome} ${r.cognome} (${r.codice_fiscale||'—'})`;
+  const agonisticoInfo = r.type==='certificato_medico' ? `<br>Agonistico: <b>${r.agonistico==='si'?'Sì':'No'}</b>` : '';
   let action='';
   if(r.status==='inviata') action=`<button class="btn btn-sm btn-primary js-take" data-id="${r.id}">Prendi in carico</button>`;
   if(r.status==='presa_in_carico' && assigned) action=`<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">Apri</button> <button class="btn btn-sm btn-danger js-close" data-id="${r.id}">Chiudi</button>`;
-  return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag ${r.type==='cambio_sesso'?'tag-sesso':''}">${PM_RESERVATION_LABELS[r.type]}</span><br><b>${patient}</b><br>Telegram: @${r.telegram_username||'non indicato'}<br>Stato: ${r.status.replaceAll('_',' ')}</div>${action}</div>`;
+  return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag ${r.type==='cambio_sesso'?'tag-sesso':''}">${PM_RESERVATION_LABELS[r.type]}</span><br><b>${patient}</b>${agonisticoInfo}<br>Telegram: @${r.telegram_username||'non indicato'}<br>Stato: ${r.status.replaceAll('_',' ')}</div>${action}</div>`;
 }
 async function pmRenderReceivedReservations(listId) {
   listId = listId || 'received-reservations-list';
@@ -105,7 +109,8 @@ function pmMyReservationRow(r) {
     action = `<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">Apri chat</button>`;
   }
   const assignedInfo = r.assigned_staff_name ? `<br>Seguito da: ${r.assigned_staff_name}` : '';
-  return `<div class="reservation-row"><div class="res-info"><b>${PM_RESERVATION_LABELS[r.type]}</b><br>${r.nome} ${r.cognome} — <b>${statusLabel}</b>${assignedInfo}</div>${action}</div>`;
+  const agonisticoInfo = r.type==='certificato_medico' ? `<br>Agonistico: ${r.agonistico==='si'?'Sì':'No'}` : '';
+  return `<div class="reservation-row"><div class="res-info"><b>${PM_RESERVATION_LABELS[r.type]}</b><br>${r.nome} ${r.cognome} — <b>${statusLabel}</b>${assignedInfo}${agonisticoInfo}</div>${action}</div>`;
 }
 async function pmRenderMyReservations(containerId) {
   const el=document.getElementById(containerId),user=pmCurrentUser(); if(!el||!user)return;
@@ -135,6 +140,19 @@ async function pmInitPatientDashboard(user) {
   const form = document.getElementById('patient-reservation-form');
   if (form && !form.dataset.wired) {
     form.dataset.wired = '1';
+
+    const patientTipo = document.getElementById('patient-tipo');
+    const agonField = document.getElementById('patient-agonistico-field');
+    const agonSelect = document.getElementById('patient-agonistico');
+    if (patientTipo && agonField && agonSelect) {
+      patientTipo.addEventListener('change', () => {
+        const isCertificato = patientTipo.value === 'certificato_medico';
+        agonField.style.display = isCertificato ? '' : 'none';
+        agonSelect.required = isCertificato;
+        if (!isCertificato) agonSelect.value = '';
+      });
+    }
+
     form.addEventListener('submit', (e) => {
       const tipo = form.tipo.value;
       const conf = PM_RECIPIENTS[tipo];
