@@ -47,6 +47,14 @@
               </select>
               <p class="form-note" id="hospital-tipo-hint" style="margin-top:8px;"></p>
             </div>
+            <div class="field" id="hospital-agonistico-field" style="display:none;">
+              <label for="hospital-agonistico">Certificato Agonistico</label>
+              <select id="hospital-agonistico" name="agonistico" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                <option value="" disabled selected>Seleziona</option>
+                <option value="si">Sì</option>
+                <option value="no">No</option>
+              </select>
+            </div>
             <div class="field"><label for="hospital-nome">Nome</label><input type="text" id="hospital-nome" name="nome" required /></div>
             <div class="field"><label for="hospital-cognome">Cognome</label><input type="text" id="hospital-cognome" name="cognome" required /></div>
             <div class="field"><label for="hospital-cf">C.F. (nick)</label><input type="text" id="hospital-cf" name="cf" required placeholder="Nickname in-game" /></div>
@@ -109,6 +117,14 @@
                   <option value="" disabled selected>Seleziona</option>
                   <option value="certificato_medico">Certificato Medico</option>
                   <option value="cambio_sesso">Cambio Sesso</option>
+                </select>
+              </div>
+              <div class="field" id="patient-agonistico-field" style="display:none;">
+                <label for="patient-agonistico">Certificato Agonistico</label>
+                <select id="patient-agonistico" name="agonistico" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                  <option value="" disabled selected>Seleziona</option>
+                  <option value="si">Sì</option>
+                  <option value="no">No</option>
                 </select>
               </div>
               <div class="field"><label for="patient-nome">Nome</label><input type="text" id="patient-nome" name="nome" required /></div>
@@ -255,6 +271,14 @@
     tipoSelect.addEventListener("change", function () {
       var conf = PM_REQUEST_TYPES[tipoSelect.value];
       tipoHint.textContent = conf ? conf.hint : "";
+      var agonField = document.getElementById("hospital-agonistico-field" + suffix);
+      var agonSelect = document.getElementById("hospital-agonistico" + suffix);
+      if (agonField && agonSelect) {
+        var isCertificato = tipoSelect.value === "certificato_medico";
+        agonField.style.display = isCertificato ? "" : "none";
+        agonSelect.required = isCertificato;
+        if (!isCertificato) agonSelect.value = "";
+      }
     });
     var form = document.getElementById("hospital-form" + suffix);
     if (form) {
