@@ -27,29 +27,30 @@ async function pmLoadCurrentUser() {
 }
 function pmShowLoginError(text) { const el = document.getElementById('login-error'); if (el) { el.textContent = text; el.classList.add('show'); } }
 
-/* Barra a "tab" dove le opzioni sono in realtà radio button nascosti
-   (es. "Tipo di prenotazione": Prenotazione x Pazienti / x Me Stesso).
-   A differenza delle schede normali (pmMountSegments), qui non si cambia
-   pannello: si aggiorna solo la classe "active" sull'etichetta selezionata,
-   in JS invece che via CSS, per compatibilità con tutti i browser. */
-function pmWireRadioTabs(container) {
+/* "Tipo di prenotazione" (Per i Pazienti / Per Me): stessa "isola" a
+   pillola già usata per le altre schede (vedi ui-tabs.js / classe
+   pm-segmented), solo che qui i bottoni non cambiano pannello: al click
+   aggiornano un radio nascosto che il resto del modulo (pmWireHospitalForm)
+   continua a leggere esattamente come prima. */
+function pmWireModalitaToggle(container) {
   if (!container || container.dataset.pmWired) return;
   container.dataset.pmWired = '1';
-  const labels = container.querySelectorAll('.tab-btn');
-  function sync() {
-    labels.forEach((label) => {
-      const input = label.querySelector('input[type="radio"]');
-      label.classList.toggle('active', !!(input && input.checked));
+  const buttons = Array.from(container.querySelectorAll('button[data-modalita-value]'));
+  const form = container.closest('form');
+  if (!form) return;
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const value = btn.dataset.modalitaValue;
+      const radio = form.querySelector('input[name="modalita"][value="' + value + '"]');
+      if (!radio) return;
+      radio.checked = true;
+      radio.dispatchEvent(new Event('change', { bubbles: true }));
+      buttons.forEach((b) => b.classList.toggle('active', b === btn));
     });
-  }
-  labels.forEach((label) => {
-    const input = label.querySelector('input[type="radio"]');
-    if (input) input.addEventListener('change', sync);
   });
-  sync();
 }
-function pmWireAllRadioTabs(root) {
-  (root || document).querySelectorAll('.modalita-tabs').forEach(pmWireRadioTabs);
+function pmWireAllModalitaToggles(root) {
+  (root || document).querySelectorAll('.pm-modalita-toggle').forEach(pmWireModalitaToggle);
 }
 
 /* Bottone principale della home ("Accedi con Telegram" / "Vai alla dashboard").
@@ -104,7 +105,7 @@ async function pmInitDashboard() {
         onActivate: (id) => { if (id === 'ricevute' && typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list'); },
       });
     }
-    pmWireAllRadioTabs(staffPanels);
+    pmWireAllModalitaToggles(staffPanels);
   }
 
   // Riquadro largo della Direzione (Gestione Account / Gestione Bandi), separato
