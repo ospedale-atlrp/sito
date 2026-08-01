@@ -40,16 +40,12 @@
           <form id="hospital-form">
             <div class="field" id="hospital-modalita-field">
               <label>Tipo di prenotazione</label>
-              <div class="tabs modalita-tabs" style="margin-top:6px;">
-                <label class="tab-btn active">
-                  <input type="radio" name="modalita" value="pazienti" checked />
-                  Prenotazione x Pazienti
-                </label>
-                <label class="tab-btn">
-                  <input type="radio" name="modalita" value="me_stesso" />
-                  Prenotazione x Me Stesso
-                </label>
+              <div class="pm-segmented pm-modalita-toggle" id="hospital-modalita-toggle" style="margin-top:6px; margin-bottom:0;">
+                <button type="button" class="active" data-modalita-value="pazienti">Per i Pazienti</button>
+                <button type="button" data-modalita-value="me_stesso">Per Me</button>
               </div>
+              <input type="radio" name="modalita" value="pazienti" checked style="position:absolute; opacity:0; width:0; height:0; pointer-events:none;" />
+              <input type="radio" name="modalita" value="me_stesso" style="position:absolute; opacity:0; width:0; height:0; pointer-events:none;" />
             </div>
             <div class="field">
               <label for="hospital-tipo">Seleziona il servizio</label>
