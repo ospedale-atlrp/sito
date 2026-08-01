@@ -2,9 +2,9 @@
 (function () {
   const esc = value => String(value || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const allRoles = () => typeof PM_ROLES !== 'undefined' ? PM_ROLES : [];
-  const editableRoles = () => { const user = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; const roles = allRoles(); return user ? roles.slice(roles.indexOf(user.role) + 1) : []; };
+  const editableRoles = () => { const user = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; const roles = allRoles(); if (user && user.isSuperAdmin) return roles; return user ? roles.slice(roles.indexOf(user.role) + 1) : []; };
   const roleOptions = (selected, includeSelected = true) => { const roles = editableRoles(); const visible = includeSelected && !roles.includes(selected) ? [selected].concat(roles) : roles; return '<option value="" disabled>Seleziona un ruolo</option>'+visible.map(role => '<option '+(role === selected ? 'selected' : '')+'>'+esc(role)+'</option>').join(''); };
-  function isManager() { const u = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; return u && ['Dirigente','Chirurgo Primario','Admin'].includes(u.role); }
+  function isManager() { const u = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; return u && (u.isSuperAdmin || ['Dirigente','Chirurgo Primario','Admin'].includes(u.role)); }
   async function invoke(action, payload) {
     const { data, error } = await PM_DB.functions.invoke('manage-staff', { body: { action, ...payload } });
     if (error) {
