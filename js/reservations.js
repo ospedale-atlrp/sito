@@ -45,14 +45,26 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
   e.preventDefault(); const user=pmCurrentUser(), form=e.target; ids=ids||{error:'reservation-error',success:'reservation-success'};
   if(!pmCanRegister(user)) return pmShowReservationMessage(ids,'Accesso al database non disponibile.',false);
   const nome=form.nome.value.trim(), cognome=form.cognome.value.trim(), cf=form.cf.value.trim(), sesso=form.sesso.value;
-  // Se il form ha un campo "telegram" manuale (compilazione da parte dello
-  // staff per conto di qualcuno) lo usiamo; altrimenti (form del paziente,
-  // che compila per sé) usiamo il Telegram già collegato al suo login.
-  const telegram = form.telegram ? form.telegram.value.trim().replace(/^@/,'').trim() : (user.telegramUsername || '');
+  // Toggle "Per Me" / "Per i Pazienti" (solo nel form staff): se presente e
+  // impostato su "me_stesso", il campo telegram è nascosto/non richiesto e
+  // usiamo il Telegram già collegato al login di chi compila. Il form del
+  // paziente (che compila sempre per sé) non ha questo campo: stesso
+  // comportamento, usa sempre il proprio Telegram.
+  const modalitaRadio = form.querySelector('input[name="modalita"]:checked');
+  const isForSelf = !form.telegram || (modalitaRadio && modalitaRadio.value === 'me_stesso');
+  const telegram = isForSelf ? (user.telegramUsername || '') : form.telegram.value.trim().replace(/^@/,'').trim();
   if(!nome||!cognome||!cf||!sesso) return pmShowReservationMessage(ids,'Compila tutti i campi.',false);
+
+  // Certificato Agonistico: presente solo per il tipo "certificato_medico".
+  let agonistico = null;
+  if (type === 'certificato_medico' && form.agonistico) {
+    if (!form.agonistico.value) return pmShowReservationMessage(ids,'Seleziona se il certificato è agonistico.',false);
+    agonistico = form.agonistico.value === 'si';
+  }
+
   const {error}=await PM_DB.from('reservations').insert({
     citizen_id:user.id, citizen_username:user.username, type, nome, cognome, codice_fiscale:cf,
-    sesso, telegram_username:telegram, target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata'
+    sesso, telegram_username:telegram, target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata', agonistico
   });
   if(error) return pmShowReservationMessage(ids,error.message,false);
   pmShowReservationMessage(ids,successMsg+' La richiesta è stata inviata al personale competente.',true); form.reset();
@@ -91,7 +103,9 @@ function pmReservationRow(r,user) {
   let action='';
   if(r.status==='inviata') action=`<button class="btn btn-sm btn-primary js-take" data-id="${r.id}">Prendi in carico</button>`;
   if(r.status==='presa_in_carico' && assigned) action=`<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">Apri</button> <button class="btn btn-sm btn-danger js-close" data-id="${r.id}">Chiudi</button>`;
-  return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag ${r.type==='cambio_sesso'?'tag-sesso':''}">${PM_RESERVATION_LABELS[r.type]}</span><br><b>${patient}</b><br>Telegram: @${r.telegram_username||'non indicato'}<br>Stato: ${r.status.replaceAll('_',' ')}</div>${action}</div>`;
+  const agonisticoLine = (r.type === 'certificato_medico' && r.agonistico !== null && r.agonistico !== undefined)
+    ? `<br>Agonistico: ${r.agonistico ? 'Sì' : 'No'}` : '';
+  return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag ${r.type==='cambio_sesso'?'tag-sesso':''}">${PM_RESERVATION_LABELS[r.type]}</span><br><b>${patient}</b>${agonisticoLine}<br>Telegram: @${r.telegram_username||'non indicato'}<br>Stato: ${r.status.replaceAll('_',' ')}</div>${action}</div>`;
 }
 async function pmRenderReceivedReservations(listId) {
   listId = listId || 'received-reservations-list';
@@ -140,6 +154,20 @@ async function pmInitPatientDashboard(user) {
   const form = document.getElementById('patient-reservation-form');
   if (form && !form.dataset.wired) {
     form.dataset.wired = '1';
+
+    // Mostra "Certificato Agonistico" solo quando il servizio scelto è
+    // Certificato Medico (stesso comportamento del form staff).
+    const agonField = document.getElementById('patient-agonistico-field');
+    const agonSelect = document.getElementById('patient-agonistico');
+    if (form.tipo && agonField && agonSelect) {
+      form.tipo.addEventListener('change', () => {
+        const isCertificato = form.tipo.value === 'certificato_medico';
+        agonField.style.display = isCertificato ? '' : 'none';
+        agonSelect.required = isCertificato;
+        if (!isCertificato) agonSelect.value = '';
+      });
+    }
+
     form.addEventListener('submit', (e) => {
       const tipo = form.tipo.value;
       const conf = PM_RECIPIENTS[tipo];
