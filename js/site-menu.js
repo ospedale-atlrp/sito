@@ -140,22 +140,35 @@ function pmPruneNoticeMap(validIds) {
   if (changed) pmSaveNoticeMap(map);
 }
 const PM_DISMISSED_KEY = "pm_dismissed_notice_ids";
-function pmDismissedIds() {
+const PM_DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // un avviso eliminato resta "eliminato" per 30 giorni
+function pmDismissedMap() {
   try {
-    const raw = JSON.parse(localStorage.getItem(PM_DISMISSED_KEY) || "[]");
-    return new Set(Array.isArray(raw) ? raw.map(String) : []);
-  } catch (_) { return new Set(); }
+    const raw = JSON.parse(localStorage.getItem(PM_DISMISSED_KEY) || "{}");
+    // Compatibilità con il vecchio formato (array di id, senza timestamp)
+    if (Array.isArray(raw)) { const map = {}; raw.forEach(function (id) { map[String(id)] = Date.now(); }); return map; }
+    return raw && typeof raw === "object" ? raw : {};
+  } catch (_) { return {}; }
 }
+function pmSaveDismissedMap(map) { localStorage.setItem(PM_DISMISSED_KEY, JSON.stringify(map)); }
 function pmDismissNotice(id) {
-  const set = pmDismissedIds();
-  set.add(String(id));
-  localStorage.setItem(PM_DISMISSED_KEY, JSON.stringify(Array.from(set)));
+  const map = pmDismissedMap();
+  map[String(id)] = Date.now();
+  pmSaveDismissedMap(map);
 }
-function pmPruneDismissed(validIds) {
-  const set = pmDismissedIds();
+function pmPruneDismissed() {
+  // IMPORTANTE: la pulizia è solo per età (30 giorni), NON più legata alla
+  // finestra delle ultime 20 notifiche recuperate. Prima, se una notifica
+  // eliminata usciva anche solo temporaneamente da quella finestra (es. per
+  // via di un ordinamento non stabile quando più avvisi condividono lo
+  // stesso created_at), il suo stato "eliminata" veniva cancellato e
+  // l'avviso ricompariva. Ora resta eliminato finché non scade.
+  const map = pmDismissedMap();
+  const now = Date.now();
   let changed = false;
-  set.forEach(function (id) { if (!validIds.has(id)) { set.delete(id); changed = true; } });
-  if (changed) localStorage.setItem(PM_DISMISSED_KEY, JSON.stringify(Array.from(set)));
+  Object.keys(map).forEach(function (id) {
+    if (now - map[id] > PM_DISMISS_TTL_MS) { delete map[id]; changed = true; }
+  });
+  if (changed) pmSaveDismissedMap(map);
 }
 async function pmFetchNotifications(user) {
   if (!user || !window.PM_DB) return [];
@@ -175,12 +188,12 @@ async function pmRenderSiteMenu(){
     notices = await pmFetchNotifications(user);
     const validIds = new Set(notices.map(function (n) { return String(n.id); }));
     pmPruneNoticeMap(validIds);
-    pmPruneDismissed(validIds);
+    pmPruneDismissed();
     const readMap = pmReadNoticeMap();
-    const dismissed = pmDismissedIds();
+    const dismissed = pmDismissedMap();
     const now = Date.now();
     visibleNotices = notices.filter(function (n) {
-      if (dismissed.has(String(n.id))) return false;
+      if (String(n.id) in dismissed) return false;
       const seenAt = readMap[n.id];
       return seenAt === undefined || (now - seenAt) < PM_NOTICE_HIDE_AFTER_MS;
     });
