@@ -79,7 +79,7 @@ async function pmInitDashboard() {
   if (!user) return window.location.href = 'login.html';
   const name = document.getElementById('dash-username'), role = document.getElementById('dash-role');
   if (name) name.textContent = user.name + ' (' + user.username + ')';
-  if (role) role.textContent = user.role;
+  if (role) role.textContent = user.role + (user.isSuperAdmin ? ' — Extra Admin' : '');
   const profileDisplay = document.getElementById('profile-username-display');
   if (profileDisplay) profileDisplay.textContent = user.username;
 
