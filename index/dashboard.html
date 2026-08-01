@@ -38,6 +38,15 @@
           <div class="form-error" id="hospital-form-error"></div>
           <div class="form-success" id="hospital-form-success"></div>
           <form id="hospital-form">
+            <div class="field" id="hospital-modalita-field">
+              <label>Tipo di prenotazione</label>
+              <div class="pm-segmented pm-modalita-toggle" id="hospital-modalita-toggle" style="margin-top:6px; margin-bottom:0;">
+                <button type="button" class="active" data-modalita-value="pazienti">Per i Pazienti</button>
+                <button type="button" data-modalita-value="me_stesso">Per Me</button>
+              </div>
+              <input type="radio" name="modalita" value="pazienti" checked style="position:absolute; opacity:0; width:0; height:0; pointer-events:none;" />
+              <input type="radio" name="modalita" value="me_stesso" style="position:absolute; opacity:0; width:0; height:0; pointer-events:none;" />
+            </div>
             <div class="field">
               <label for="hospital-tipo">Seleziona il servizio</label>
               <select id="hospital-tipo" name="tipo" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
@@ -47,10 +56,18 @@
               </select>
               <p class="form-note" id="hospital-tipo-hint" style="margin-top:8px;"></p>
             </div>
+            <div class="field" id="hospital-agonistico-field" style="display:none;">
+              <label for="hospital-agonistico">Certificato Agonistico</label>
+              <select id="hospital-agonistico" name="agonistico" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                <option value="" disabled selected>Seleziona</option>
+                <option value="si">Sì</option>
+                <option value="no">No</option>
+              </select>
+            </div>
             <div class="field"><label for="hospital-nome">Nome</label><input type="text" id="hospital-nome" name="nome" required /></div>
             <div class="field"><label for="hospital-cognome">Cognome</label><input type="text" id="hospital-cognome" name="cognome" required /></div>
             <div class="field"><label for="hospital-cf">C.F. (nick)</label><input type="text" id="hospital-cf" name="cf" required placeholder="Nickname in-game" /></div>
-            <div class="field"><label for="hospital-tg">Telegram del paziente</label><input type="text" id="hospital-tg" name="telegram" required placeholder="@usernameTelegram" /></div>
+            <div class="field" id="hospital-tg-field"><label for="hospital-tg">Telegram del paziente</label><input type="text" id="hospital-tg" name="telegram" required placeholder="@usernameTelegram" /></div>
             <div class="field">
               <label for="hospital-sesso">Sesso</label>
               <select id="hospital-sesso" name="sesso" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
@@ -109,6 +126,14 @@
                   <option value="" disabled selected>Seleziona</option>
                   <option value="certificato_medico">Certificato Medico</option>
                   <option value="cambio_sesso">Cambio Sesso</option>
+                </select>
+              </div>
+              <div class="field" id="patient-agonistico-field" style="display:none;">
+                <label for="patient-agonistico">Certificato Agonistico</label>
+                <select id="patient-agonistico" name="agonistico" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                  <option value="" disabled selected>Seleziona</option>
+                  <option value="si">Sì</option>
+                  <option value="no">No</option>
                 </select>
               </div>
               <div class="field"><label for="patient-nome">Nome</label><input type="text" id="patient-nome" name="nome" required /></div>
@@ -251,9 +276,34 @@
     var tipoSelect = document.getElementById("hospital-tipo" + suffix);
     var tipoHint = document.getElementById("hospital-tipo-hint" + suffix);
     if (!tipoSelect) return;
+
+    // Toggle "Prenotazione x Pazienti" / "x Me Stesso": solo nella prima
+    // modalità serve (ed è obbligatoria) la @ Telegram del paziente.
+    var tgField = document.getElementById("hospital-tg-field" + suffix);
+    var tgInput = document.getElementById("hospital-tg" + suffix);
+    var modalitaRadios = document.querySelectorAll('#hospital-form' + suffix + ' input[name="modalita"]');
+    function pmUpdateHospitalModalita() {
+      var checked = document.querySelector('#hospital-form' + suffix + ' input[name="modalita"]:checked');
+      var isPazienti = !checked || checked.value === "pazienti";
+      if (tgField && tgInput) {
+        tgField.style.display = isPazienti ? "" : "none";
+        tgInput.required = isPazienti;
+        if (!isPazienti) tgInput.value = "";
+      }
+    }
+    modalitaRadios.forEach(function (r) { r.addEventListener("change", pmUpdateHospitalModalita); });
+    pmUpdateHospitalModalita();
     tipoSelect.addEventListener("change", function () {
       var conf = PM_REQUEST_TYPES[tipoSelect.value];
       tipoHint.textContent = conf ? conf.hint : "";
+      var agonField = document.getElementById("hospital-agonistico-field" + suffix);
+      var agonSelect = document.getElementById("hospital-agonistico" + suffix);
+      if (agonField && agonSelect) {
+        var isCertificato = tipoSelect.value === "certificato_medico";
+        agonField.style.display = isCertificato ? "" : "none";
+        agonSelect.required = isCertificato;
+        if (!isCertificato) agonSelect.value = "";
+      }
     });
     var form = document.getElementById("hospital-form" + suffix);
     if (form) {
