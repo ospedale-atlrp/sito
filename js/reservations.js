@@ -69,9 +69,10 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
       body: (user.name || user.username) + ' ha inviato una richiesta di ' + PM_RESERVATION_LABELS[type] + '.',
     });
   }
-  // Prenotazione "x Pazienti": avvisa la @ indicata che la prenotazione è
-  // stata inviata a suo nome (via bot Telegram, gestito lato server).
-  if (perPaziente && telegram && inserted && inserted.id && window.PM_DB && PM_DB.functions) {
+  // Avvisa (sito + Telegram) chi ha la @ indicata: sia in "x Pazienti"
+  // (la persona per cui è stata fatta), sia in "Per Me" o nel modulo
+  // paziente per sé (in quel caso la @ è la propria).
+  if (telegram && inserted && inserted.id && window.PM_DB && PM_DB.functions) {
     PM_DB.functions.invoke('notify-new-reservation', { body: { reservationId: inserted.id } }).catch(function () {});
   }
   pmRenderReceivedReservations('received-reservations-list');
