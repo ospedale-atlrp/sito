@@ -110,65 +110,32 @@ function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop
 
 /* Avvisi: letti dalla tabella "notifications" su Supabase (per ruolo o per
    singolo utente). Lo stato "letto/non letto" resta locale al browser. */
-const PM_READ_NOTICES_KEY = "pm_read_notice_ids";
 const PM_NOTICE_HIDE_AFTER_MS = 3 * 60 * 60 * 1000; // 3 ore dopo essere state viste, spariscono dalla lista
-function pmReadNoticeMap() {
+/* Stato "letta"/"eliminata" delle notifiche: salvato su Supabase (tabella
+   notification_status, una riga per utente+notifica) invece che nella
+   memoria del browser, così è coerente su ogni dispositivo/browser da cui
+   si accede, e non si perde tra logout e login. */
+async function pmFetchNotificationStatus(user) {
+  if (!user || !window.PM_DB) return {};
+  const { data, error } = await PM_DB.from("notification_status").select("notification_id, seen_at, dismissed_at").eq("user_id", user.id);
+  const map = {};
+  if (!error) (data || []).forEach(function (row) { map[row.notification_id] = row; });
+  return map;
+}
+async function pmMarkNoticesSeen(user, ids) {
+  if (!user || !window.PM_DB || !ids.length) return;
+  const now = new Date().toISOString();
+  const rows = ids.map(function (id) { return { user_id: user.id, notification_id: id, seen_at: now }; });
+  try { await PM_DB.from("notification_status").upsert(rows, { onConflict: "user_id,notification_id" }); } catch (_) { /* un avviso non segnato come letto non deve bloccare l'interfaccia */ }
+}
+async function pmDismissNotice(user, id) {
+  if (!user || !window.PM_DB) return;
   try {
-    const raw = JSON.parse(localStorage.getItem(PM_READ_NOTICES_KEY) || "{}");
-    // Compatibilità con il vecchio formato (array di id, senza timestamp)
-    if (Array.isArray(raw)) { const map = {}; raw.forEach(function (id) { map[id] = Date.now(); }); return map; }
-    return raw && typeof raw === "object" ? raw : {};
-  } catch (_) { return {}; }
-}
-function pmSaveNoticeMap(map) { localStorage.setItem(PM_READ_NOTICES_KEY, JSON.stringify(map)); }
-function pmMarkNoticesRead(ids) {
-  const map = pmReadNoticeMap();
-  const now = Date.now();
-  ids.forEach(function (id) { id = String(id); if (!(id in map)) map[id] = now; }); // il timer parte dalla prima volta che viene vista
-  pmSaveNoticeMap(map);
-}
-function pmPruneNoticeMap(validIds) {
-  // Pulizia: toglie dallo storage gli id troppo vecchi o non più presenti tra le notifiche recenti
-  // IMPORTANTE: validIds deve contenere id come stringhe (String(n.id)), altrimenti il confronto
-  // fallisce quando l'id di Supabase è numerico e tutto risulterebbe sempre "non valido".
-  const map = pmReadNoticeMap();
-  const now = Date.now();
-  let changed = false;
-  Object.keys(map).forEach(function (id) {
-    if (now - map[id] > PM_NOTICE_HIDE_AFTER_MS || !validIds.has(id)) { delete map[id]; changed = true; }
-  });
-  if (changed) pmSaveNoticeMap(map);
-}
-const PM_DISMISSED_KEY = "pm_dismissed_notice_ids";
-const PM_DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // un avviso eliminato resta "eliminato" per 30 giorni
-function pmDismissedMap() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(PM_DISMISSED_KEY) || "{}");
-    // Compatibilità con il vecchio formato (array di id, senza timestamp)
-    if (Array.isArray(raw)) { const map = {}; raw.forEach(function (id) { map[String(id)] = Date.now(); }); return map; }
-    return raw && typeof raw === "object" ? raw : {};
-  } catch (_) { return {}; }
-}
-function pmSaveDismissedMap(map) { localStorage.setItem(PM_DISMISSED_KEY, JSON.stringify(map)); }
-function pmDismissNotice(id) {
-  const map = pmDismissedMap();
-  map[String(id)] = Date.now();
-  pmSaveDismissedMap(map);
-}
-function pmPruneDismissed() {
-  // IMPORTANTE: la pulizia è solo per età (30 giorni), NON più legata alla
-  // finestra delle ultime 20 notifiche recuperate. Prima, se una notifica
-  // eliminata usciva anche solo temporaneamente da quella finestra (es. per
-  // via di un ordinamento non stabile quando più avvisi condividono lo
-  // stesso created_at), il suo stato "eliminata" veniva cancellato e
-  // l'avviso ricompariva. Ora resta eliminato finché non scade.
-  const map = pmDismissedMap();
-  const now = Date.now();
-  let changed = false;
-  Object.keys(map).forEach(function (id) {
-    if (now - map[id] > PM_DISMISS_TTL_MS) { delete map[id]; changed = true; }
-  });
-  if (changed) pmSaveDismissedMap(map);
+    await PM_DB.from("notification_status").upsert(
+      { user_id: user.id, notification_id: id, dismissed_at: new Date().toISOString() },
+      { onConflict: "user_id,notification_id" }
+    );
+  } catch (_) { /* un'eliminazione non salvata non deve bloccare l'interfaccia */ }
 }
 async function pmFetchNotifications(user) {
   if (!user || !window.PM_DB) return [];
@@ -183,21 +150,19 @@ async function pmFetchNotifications(user) {
 
 async function pmRenderSiteMenu(){
   pmBuildSiteMenuShell();const panel=document.getElementById("site-menu-panel"),user=typeof pmCurrentUser==="function"?pmCurrentUser():null,lang=typeof I18N!=="undefined"?I18N.current():"it",pref=pmThemePreference();let html="";
-  let notices = [], visibleNotices = [], unread = 0;
+  let notices = [], visibleNotices = [], unread = 0, statusMap = {};
   if (user) {
-    notices = await pmFetchNotifications(user);
-    const validIds = new Set(notices.map(function (n) { return String(n.id); }));
-    pmPruneNoticeMap(validIds);
-    pmPruneDismissed();
-    const readMap = pmReadNoticeMap();
-    const dismissed = pmDismissedMap();
+    const results = await Promise.all([pmFetchNotifications(user), pmFetchNotificationStatus(user)]);
+    notices = results[0];
+    statusMap = results[1];
     const now = Date.now();
     visibleNotices = notices.filter(function (n) {
-      if (String(n.id) in dismissed) return false;
-      const seenAt = readMap[n.id];
-      return seenAt === undefined || (now - seenAt) < PM_NOTICE_HIDE_AFTER_MS;
+      const st = statusMap[n.id];
+      if (st && st.dismissed_at) return false;
+      if (st && st.seen_at) { return (now - new Date(st.seen_at).getTime()) < PM_NOTICE_HIDE_AFTER_MS; }
+      return true;
     });
-    unread = visibleNotices.filter(function (n) { return readMap[n.id] === undefined; }).length;
+    unread = visibleNotices.filter(function (n) { const st = statusMap[n.id]; return !st || !st.seen_at; }).length;
   }
   if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>🔔 Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">▾</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ Accedi con Telegram</a></div>';}
   html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><div class="site-menu-langs site-menu-langs-full"><button data-lang="it" class="'+(lang==="it"?"active":"")+'">IT · Italiano</button><button data-lang="es" class="'+(lang==="es"?"active":"")+'">ESP · Spagnolo</button><button data-lang="en" class="'+(lang==="en"?"active":"")+'">ENG · Inglese</button></div></div>';
@@ -210,7 +175,7 @@ async function pmRenderSiteMenu(){
   panel.querySelectorAll(".notice-delete").forEach(function(btn){
     btn.addEventListener("click",function(e){
       e.stopPropagation();
-      pmDismissNotice(btn.dataset.id);
+      pmDismissNotice(user, btn.dataset.id);
       const item=btn.closest(".notification-item");
       if(item){ item.style.opacity="0"; setTimeout(function(){ item.remove(); },150); }
     });
@@ -221,7 +186,8 @@ async function pmRenderSiteMenu(){
     list.classList.toggle("open",willOpen);
     noticesBtn.setAttribute("aria-expanded",String(willOpen));
     if(willOpen){
-      pmMarkNoticesRead(visibleNotices.map(function(n){return n.id;}));
+      const unseenIds = visibleNotices.filter(function(n){ const st=statusMap[n.id]; return !st || !st.seen_at; }).map(function(n){return n.id;});
+      pmMarkNoticesSeen(user, unseenIds);
       const countEl=noticesBtn.querySelector(".menu-notice-count");
       if(countEl){countEl.textContent="0";countEl.classList.add("is-zero");}
     }
@@ -232,4 +198,7 @@ function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n
 // pmRenderSiteMenu() dopo aver caricato l'utente (per evitare un rendering
 // prematuro con utente=null che cancellerebbe lo storico "letto" via
 // pmPruneNoticeMap). Il menu resta comunque aggiornato al cambio lingua.
+// (Lo stato letta/eliminata ora vive su Supabase, non più in localStorage:
+// questo problema di rendering prematuro non lo riguarda più direttamente,
+// ma il fetch inutile va comunque evitato.)
 document.addEventListener("i18n:changed",pmRenderSiteMenu);
