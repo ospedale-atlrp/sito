@@ -104,12 +104,16 @@ function pmBuildSiteMenuShell(){
   brand.href="../index.html";
   const toggle=document.createElement("button"); toggle.id="site-menu-toggle";toggle.className="site-menu-toggle";toggle.setAttribute("aria-label","Apri menu");toggle.setAttribute("aria-expanded","false");toggle.innerHTML="<span></span><span></span><span></span>";document.body.appendChild(toggle);
   const panel=document.createElement("aside");panel.id="site-menu-panel";panel.className="site-menu-panel";document.body.appendChild(panel);
-  toggle.addEventListener("click",function(e){e.stopPropagation();const open=panel.classList.toggle("open");toggle.setAttribute("aria-expanded",String(open));});
-  document.addEventListener("click",function(e){if(!panel.contains(e.target)&&!toggle.contains(e.target)){panel.classList.remove("open");toggle.setAttribute("aria-expanded","false");}});
   // Bottone unico per chi non ha ancora effettuato l'accesso: sostituisce
-  // logo + hamburger con un solo invito ad accedere. Nascosto di default,
-  // mostrato/nascosto da pmRenderSiteMenu in base allo stato di login.
-  const guestCta=document.createElement("a"); guestCta.id="site-guest-cta"; guestCta.className="site-guest-cta"; guestCta.href="login.html"; guestCta.innerHTML='✈ <span>Accedi con Telegram</span>'; guestCta.style.display="none"; document.body.appendChild(guestCta);
+  // logo + hamburger con un solo invito ad accedere, ma apre lo stesso
+  // pannello (dentro ci sono comunque lingua, tema e il link per accedere).
+  // Nascosto di default, mostrato/nascosto da pmRenderSiteMenu in base allo
+  // stato di login.
+  const guestCta=document.createElement("button"); guestCta.type="button"; guestCta.id="site-guest-cta"; guestCta.className="site-guest-cta"; guestCta.setAttribute("aria-expanded","false"); guestCta.innerHTML='✈ <span>Accedi con Telegram</span>'; guestCta.style.display="none"; document.body.appendChild(guestCta);
+  function toggleOpen(btn){ const open=panel.classList.toggle("open"); toggle.setAttribute("aria-expanded",String(open)); guestCta.setAttribute("aria-expanded",String(open)); }
+  toggle.addEventListener("click",function(e){e.stopPropagation();toggleOpen();});
+  guestCta.addEventListener("click",function(e){e.stopPropagation();toggleOpen();});
+  document.addEventListener("click",function(e){if(!panel.contains(e.target)&&!toggle.contains(e.target)&&!guestCta.contains(e.target)){panel.classList.remove("open");toggle.setAttribute("aria-expanded","false");guestCta.setAttribute("aria-expanded","false");}});
 }
 function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop()||"index.html";return '<a href="'+href+'" class="site-menu-item '+(page===href?"active":"")+'">'+(icon?icon+" ":"")+label+'</a>';}
 
@@ -186,20 +190,22 @@ async function pmRenderSiteMenu(){
     panel.classList.remove("open");
     if(guestCta)guestCta.style.display="";
   }
-  let notices = [];
-  if (user) notices = await pmFetchNotifications(user);
-  const validIds = new Set(notices.map(function (n) { return String(n.id); }));
-  pmPruneNoticeMap(validIds);
-  pmPruneDismissed(validIds);
-  const readMap = pmReadNoticeMap();
-  const dismissed = pmDismissedIds();
-  const now = Date.now();
-  const visibleNotices = notices.filter(function (n) {
-    if (dismissed.has(String(n.id))) return false;
-    const seenAt = readMap[n.id];
-    return seenAt === undefined || (now - seenAt) < PM_NOTICE_HIDE_AFTER_MS;
-  });
-  const unread = visibleNotices.filter(function (n) { return readMap[n.id] === undefined; }).length;
+  let notices = [], visibleNotices = [], unread = 0;
+  if (user) {
+    notices = await pmFetchNotifications(user);
+    const validIds = new Set(notices.map(function (n) { return String(n.id); }));
+    pmPruneNoticeMap(validIds);
+    pmPruneDismissed(validIds);
+    const readMap = pmReadNoticeMap();
+    const dismissed = pmDismissedIds();
+    const now = Date.now();
+    visibleNotices = notices.filter(function (n) {
+      if (dismissed.has(String(n.id))) return false;
+      const seenAt = readMap[n.id];
+      return seenAt === undefined || (now - seenAt) < PM_NOTICE_HIDE_AFTER_MS;
+    });
+    unread = visibleNotices.filter(function (n) { return readMap[n.id] === undefined; }).length;
+  }
   if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>🔔 Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">▾</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section">'+pmMenuItem("login.html","Accesso personale","▣")+pmMenuItem("area-personale.html","Area personale Telegram","✈")+'</div>';}
   html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><div class="site-menu-langs site-menu-langs-full"><button data-lang="it" class="'+(lang==="it"?"active":"")+'">IT · Italiano</button><button data-lang="es" class="'+(lang==="es"?"active":"")+'">ESP · Spagnolo</button><button data-lang="en" class="'+(lang==="en"?"active":"")+'">ENG · Inglese</button></div></div>';
   html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">☼<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">☾<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">▣<span>Dispositivo</span></button></div></div>';
@@ -229,4 +235,8 @@ async function pmRenderSiteMenu(){
   });
 }
 function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><button type="button" class="notice-delete" data-id="'+n.id+'" aria-label="Elimina avviso">×</button><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">Nessun avviso.</div>';}
-document.addEventListener("DOMContentLoaded",pmRenderSiteMenu);document.addEventListener("i18n:changed",pmRenderSiteMenu);
+// NB: niente listener DOMContentLoaded qui — ci pensa già auth.js a chiamare
+// pmRenderSiteMenu() dopo aver caricato l'utente (per evitare un rendering
+// prematuro con utente=null che cancellerebbe lo storico "letto" via
+// pmPruneNoticeMap). Il menu resta comunque aggiornato al cambio lingua.
+document.addEventListener("i18n:changed",pmRenderSiteMenu);
