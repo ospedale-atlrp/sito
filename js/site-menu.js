@@ -38,11 +38,10 @@ function pmInjectSiteMenuStyle() {
     .site-menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity:0; }
     .site-menu-toggle[aria-expanded="true"] span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
 
-    .site-guest-cta { position:fixed; top:18px; right:18px; z-index:1001; display:flex; align-items:center; gap:8px;
-      padding:11px 18px; border-radius:999px; background:#229ED9; color:#fff !important; text-decoration:none;
-      font-family:var(--font-body); font-weight:600; font-size:0.86rem; box-shadow:0 4px 16px rgba(34,158,217,0.35);
-      transition:transform .15s ease, background .15s ease; }
-    .site-guest-cta:hover { background:#1688bf; transform:translateY(-1px); }
+    .site-menu-guest-btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+      padding:11px 14px; border-radius:12px; background:#229ED9; color:#fff !important; text-decoration:none;
+      font-family:var(--font-body); font-weight:600; font-size:0.9rem; transition:background .15s ease, transform .15s ease; }
+    .site-menu-guest-btn:hover { background:#1688bf; transform:translateY(-1px); }
 
     .site-menu-panel { position:fixed; top:74px; right:18px; z-index:1000; width:min(310px, calc(100vw - 36px));
       border-radius:18px; padding:10px; opacity:0; transform:translateY(-8px) scale(0.97); pointer-events:none;
@@ -104,16 +103,8 @@ function pmBuildSiteMenuShell(){
   brand.href="../index.html";
   const toggle=document.createElement("button"); toggle.id="site-menu-toggle";toggle.className="site-menu-toggle";toggle.setAttribute("aria-label","Apri menu");toggle.setAttribute("aria-expanded","false");toggle.innerHTML="<span></span><span></span><span></span>";document.body.appendChild(toggle);
   const panel=document.createElement("aside");panel.id="site-menu-panel";panel.className="site-menu-panel";document.body.appendChild(panel);
-  // Bottone unico per chi non ha ancora effettuato l'accesso: sostituisce
-  // logo + hamburger con un solo invito ad accedere, ma apre lo stesso
-  // pannello (dentro ci sono comunque lingua, tema e il link per accedere).
-  // Nascosto di default, mostrato/nascosto da pmRenderSiteMenu in base allo
-  // stato di login.
-  const guestCta=document.createElement("button"); guestCta.type="button"; guestCta.id="site-guest-cta"; guestCta.className="site-guest-cta"; guestCta.setAttribute("aria-expanded","false"); guestCta.innerHTML='✈ <span>Accedi con Telegram</span>'; guestCta.style.display="none"; document.body.appendChild(guestCta);
-  function toggleOpen(btn){ const open=panel.classList.toggle("open"); toggle.setAttribute("aria-expanded",String(open)); guestCta.setAttribute("aria-expanded",String(open)); }
-  toggle.addEventListener("click",function(e){e.stopPropagation();toggleOpen();});
-  guestCta.addEventListener("click",function(e){e.stopPropagation();toggleOpen();});
-  document.addEventListener("click",function(e){if(!panel.contains(e.target)&&!toggle.contains(e.target)&&!guestCta.contains(e.target)){panel.classList.remove("open");toggle.setAttribute("aria-expanded","false");guestCta.setAttribute("aria-expanded","false");}});
+  toggle.addEventListener("click",function(e){e.stopPropagation();const open=panel.classList.toggle("open");toggle.setAttribute("aria-expanded",String(open));});
+  document.addEventListener("click",function(e){if(!panel.contains(e.target)&&!toggle.contains(e.target)){panel.classList.remove("open");toggle.setAttribute("aria-expanded","false");}});
 }
 function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop()||"index.html";return '<a href="'+href+'" class="site-menu-item '+(page===href?"active":"")+'">'+(icon?icon+" ":"")+label+'</a>';}
 
@@ -179,17 +170,6 @@ async function pmFetchNotifications(user) {
 
 async function pmRenderSiteMenu(){
   pmBuildSiteMenuShell();const panel=document.getElementById("site-menu-panel"),user=typeof pmCurrentUser==="function"?pmCurrentUser():null,lang=typeof I18N!=="undefined"?I18N.current():"it",pref=pmThemePreference();let html="";
-  const brandEl=document.querySelector(".site-brand-float"),toggleEl=document.getElementById("site-menu-toggle"),guestCta=document.getElementById("site-guest-cta");
-  if(user){
-    if(brandEl)brandEl.style.display="";
-    if(toggleEl)toggleEl.style.display="";
-    if(guestCta)guestCta.style.display="none";
-  }else{
-    if(brandEl)brandEl.style.display="none";
-    if(toggleEl)toggleEl.style.display="none";
-    panel.classList.remove("open");
-    if(guestCta)guestCta.style.display="";
-  }
   let notices = [], visibleNotices = [], unread = 0;
   if (user) {
     notices = await pmFetchNotifications(user);
@@ -206,7 +186,7 @@ async function pmRenderSiteMenu(){
     });
     unread = visibleNotices.filter(function (n) { return readMap[n.id] === undefined; }).length;
   }
-  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>🔔 Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">▾</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section">'+pmMenuItem("login.html","Accesso personale","▣")+pmMenuItem("area-personale.html","Area personale Telegram","✈")+'</div>';}
+  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>🔔 Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">▾</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ Accedi con Telegram</a></div>';}
   html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><div class="site-menu-langs site-menu-langs-full"><button data-lang="it" class="'+(lang==="it"?"active":"")+'">IT · Italiano</button><button data-lang="es" class="'+(lang==="es"?"active":"")+'">ESP · Spagnolo</button><button data-lang="en" class="'+(lang==="en"?"active":"")+'">ENG · Inglese</button></div></div>';
   html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">☼<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">☾<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">▣<span>Dispositivo</span></button></div></div>';
   panel.innerHTML=html;
