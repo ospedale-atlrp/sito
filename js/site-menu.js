@@ -38,6 +38,12 @@ function pmInjectSiteMenuStyle() {
     .site-menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity:0; }
     .site-menu-toggle[aria-expanded="true"] span:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
 
+    .site-guest-cta { position:fixed; top:18px; right:18px; z-index:1001; display:flex; align-items:center; gap:8px;
+      padding:11px 18px; border-radius:999px; background:#229ED9; color:#fff !important; text-decoration:none;
+      font-family:var(--font-body); font-weight:600; font-size:0.86rem; box-shadow:0 4px 16px rgba(34,158,217,0.35);
+      transition:transform .15s ease, background .15s ease; }
+    .site-guest-cta:hover { background:#1688bf; transform:translateY(-1px); }
+
     .site-menu-panel { position:fixed; top:74px; right:18px; z-index:1000; width:min(310px, calc(100vw - 36px));
       border-radius:18px; padding:10px; opacity:0; transform:translateY(-8px) scale(0.97); pointer-events:none;
       transition:opacity .16s ease, transform .16s ease; }
@@ -60,7 +66,8 @@ function pmInjectSiteMenuStyle() {
     .site-menu-item { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:8px 10px; border-radius:10px; border:none; background:transparent; cursor:pointer; font-family:var(--font-body); font-size:0.86rem; text-decoration:none; transition:background .15s ease; }
     .site-menu-item:hover { background:rgba(127,127,127,0.14); }
     .site-menu-item.active { font-weight:700; background:rgba(127,127,127,0.12); }
-    .notification-menu-button { justify-content:space-between; }
+    .notification-menu-button { justify-content:space-between; margin-top:6px; }
+    @media (min-width: 641px) and (max-width: 1024px) { .notification-menu-button { margin-top:12px; } }
     .notice-btn-right { display:flex; align-items:center; gap:7px; }
     .menu-notice-count { background:#c0392b; font-size:0.7rem; padding:1px 7px; border-radius:999px; min-width:17px; text-align:center; }
     .menu-notice-count.is-zero { background:rgba(127,127,127,0.35); }
@@ -69,7 +76,13 @@ function pmInjectSiteMenuStyle() {
     .menu-notice-list { max-height:0; opacity:0; margin-top:0; overflow:hidden; display:flex; flex-direction:column; gap:4px;
       transition:max-height .24s ease, opacity .18s ease, margin-top .24s ease; }
     .menu-notice-list.open { max-height:240px; opacity:1; margin-top:8px; overflow-y:auto; padding-top:8px; border-top:1px solid rgba(127,127,127,0.18); }
-    .notification-item { padding:7px 9px; border-radius:10px; font-size:0.8rem; line-height:1.3; }
+    .notification-item { position:relative; padding:7px 26px 7px 9px; border-radius:10px; font-size:0.8rem; line-height:1.3; transition:opacity .15s ease; }
+    .notice-delete { position:absolute; top:5px; right:5px; width:18px; height:18px; padding:0; border:none; border-radius:50%;
+      background:rgba(127,127,127,0.2); color:inherit; font-size:0.8rem; line-height:1; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s ease, background .15s ease, color .15s ease; }
+    .notification-item:hover .notice-delete, .notice-delete:focus-visible { opacity:0.85; }
+    .notice-delete:hover { opacity:1; background:#c0392b; color:#fff; }
+    @media (hover: none) { .notice-delete { opacity:0.45; } }
     html[data-theme="light"] .notification-item, html:not([data-theme]) .notification-item { background:rgba(0,0,0,0.045); }
     html[data-theme="dark"] .notification-item { background:rgba(255,255,255,0.07); }
     .notification-item b { display:block; margin-bottom:1px; }
@@ -93,6 +106,10 @@ function pmBuildSiteMenuShell(){
   const panel=document.createElement("aside");panel.id="site-menu-panel";panel.className="site-menu-panel";document.body.appendChild(panel);
   toggle.addEventListener("click",function(e){e.stopPropagation();const open=panel.classList.toggle("open");toggle.setAttribute("aria-expanded",String(open));});
   document.addEventListener("click",function(e){if(!panel.contains(e.target)&&!toggle.contains(e.target)){panel.classList.remove("open");toggle.setAttribute("aria-expanded","false");}});
+  // Bottone unico per chi non ha ancora effettuato l'accesso: sostituisce
+  // logo + hamburger con un solo invito ad accedere. Nascosto di default,
+  // mostrato/nascosto da pmRenderSiteMenu in base allo stato di login.
+  const guestCta=document.createElement("a"); guestCta.id="site-guest-cta"; guestCta.className="site-guest-cta"; guestCta.href="login.html"; guestCta.innerHTML='✈ <span>Accedi con Telegram</span>'; guestCta.style.display="none"; document.body.appendChild(guestCta);
 }
 function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop()||"index.html";return '<a href="'+href+'" class="site-menu-item '+(page===href?"active":"")+'">'+(icon?icon+" ":"")+label+'</a>';}
 
@@ -112,11 +129,13 @@ function pmSaveNoticeMap(map) { localStorage.setItem(PM_READ_NOTICES_KEY, JSON.s
 function pmMarkNoticesRead(ids) {
   const map = pmReadNoticeMap();
   const now = Date.now();
-  ids.forEach(function (id) { if (!(id in map)) map[id] = now; }); // il timer parte dalla prima volta che viene vista
+  ids.forEach(function (id) { id = String(id); if (!(id in map)) map[id] = now; }); // il timer parte dalla prima volta che viene vista
   pmSaveNoticeMap(map);
 }
 function pmPruneNoticeMap(validIds) {
   // Pulizia: toglie dallo storage gli id troppo vecchi o non più presenti tra le notifiche recenti
+  // IMPORTANTE: validIds deve contenere id come stringhe (String(n.id)), altrimenti il confronto
+  // fallisce quando l'id di Supabase è numerico e tutto risulterebbe sempre "non valido".
   const map = pmReadNoticeMap();
   const now = Date.now();
   let changed = false;
@@ -124,6 +143,24 @@ function pmPruneNoticeMap(validIds) {
     if (now - map[id] > PM_NOTICE_HIDE_AFTER_MS || !validIds.has(id)) { delete map[id]; changed = true; }
   });
   if (changed) pmSaveNoticeMap(map);
+}
+const PM_DISMISSED_KEY = "pm_dismissed_notice_ids";
+function pmDismissedIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PM_DISMISSED_KEY) || "[]");
+    return new Set(Array.isArray(raw) ? raw.map(String) : []);
+  } catch (_) { return new Set(); }
+}
+function pmDismissNotice(id) {
+  const set = pmDismissedIds();
+  set.add(String(id));
+  localStorage.setItem(PM_DISMISSED_KEY, JSON.stringify(Array.from(set)));
+}
+function pmPruneDismissed(validIds) {
+  const set = pmDismissedIds();
+  let changed = false;
+  set.forEach(function (id) { if (!validIds.has(id)) { set.delete(id); changed = true; } });
+  if (changed) localStorage.setItem(PM_DISMISSED_KEY, JSON.stringify(Array.from(set)));
 }
 async function pmFetchNotifications(user) {
   if (!user || !window.PM_DB) return [];
@@ -138,12 +175,27 @@ async function pmFetchNotifications(user) {
 
 async function pmRenderSiteMenu(){
   pmBuildSiteMenuShell();const panel=document.getElementById("site-menu-panel"),user=typeof pmCurrentUser==="function"?pmCurrentUser():null,lang=typeof I18N!=="undefined"?I18N.current():"it",pref=pmThemePreference();let html="";
+  const brandEl=document.querySelector(".site-brand-float"),toggleEl=document.getElementById("site-menu-toggle"),guestCta=document.getElementById("site-guest-cta");
+  if(user){
+    if(brandEl)brandEl.style.display="";
+    if(toggleEl)toggleEl.style.display="";
+    if(guestCta)guestCta.style.display="none";
+  }else{
+    if(brandEl)brandEl.style.display="none";
+    if(toggleEl)toggleEl.style.display="none";
+    panel.classList.remove("open");
+    if(guestCta)guestCta.style.display="";
+  }
   let notices = [];
   if (user) notices = await pmFetchNotifications(user);
-  pmPruneNoticeMap(new Set(notices.map(function (n) { return n.id; })));
+  const validIds = new Set(notices.map(function (n) { return String(n.id); }));
+  pmPruneNoticeMap(validIds);
+  pmPruneDismissed(validIds);
   const readMap = pmReadNoticeMap();
+  const dismissed = pmDismissedIds();
   const now = Date.now();
   const visibleNotices = notices.filter(function (n) {
+    if (dismissed.has(String(n.id))) return false;
     const seenAt = readMap[n.id];
     return seenAt === undefined || (now - seenAt) < PM_NOTICE_HIDE_AFTER_MS;
   });
@@ -156,6 +208,14 @@ async function pmRenderSiteMenu(){
   const log=document.getElementById("site-menu-logout");if(log)log.addEventListener("click",function(e){e.preventDefault();pmLogout();});
   panel.querySelectorAll("[data-lang]").forEach(function(b){b.addEventListener("click",function(){if(typeof I18N!=="undefined")I18N.load(b.dataset.lang);});});
   panel.querySelectorAll("[data-theme-choice]").forEach(function(b){b.addEventListener("click",function(){pmSetTheme(b.dataset.themeChoice);});});
+  panel.querySelectorAll(".notice-delete").forEach(function(btn){
+    btn.addEventListener("click",function(e){
+      e.stopPropagation();
+      pmDismissNotice(btn.dataset.id);
+      const item=btn.closest(".notification-item");
+      if(item){ item.style.opacity="0"; setTimeout(function(){ item.remove(); },150); }
+    });
+  });
   const noticesBtn=document.getElementById("site-menu-notices"),list=document.getElementById("site-menu-notice-list");
   if(noticesBtn&&list)noticesBtn.addEventListener("click",function(){
     const willOpen=!list.classList.contains("open");
@@ -168,5 +228,5 @@ async function pmRenderSiteMenu(){
     }
   });
 }
-function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">Nessun avviso.</div>';}
+function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><button type="button" class="notice-delete" data-id="'+n.id+'" aria-label="Elimina avviso">×</button><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">Nessun avviso.</div>';}
 document.addEventListener("DOMContentLoaded",pmRenderSiteMenu);document.addEventListener("i18n:changed",pmRenderSiteMenu);
