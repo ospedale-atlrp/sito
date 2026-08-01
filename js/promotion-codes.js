@@ -20,9 +20,9 @@
     const user = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null;
     const roleSelect = document.getElementById('promo-role');
     if (roleSelect && user && typeof PM_ROLES !== 'undefined') {
-      // Stessa regola lato server: solo ruoli sotto il proprio.
+      // Stessa regola lato server: solo ruoli sotto il proprio (tranne il super-admin, che li vede tutti).
       const myIndex = PM_ROLES.indexOf(user.role);
-      const assignable = myIndex === -1 ? PM_ROLES : PM_ROLES.slice(myIndex + 1);
+      const assignable = user.isSuperAdmin ? PM_ROLES : (myIndex === -1 ? PM_ROLES : PM_ROLES.slice(myIndex + 1));
       roleSelect.innerHTML = '<option value="" disabled selected>Seleziona</option>' +
         assignable.map((r) => `<option value="${r}">${r}</option>`).join('');
     }
