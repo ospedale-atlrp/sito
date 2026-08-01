@@ -61,19 +61,18 @@ function pmInjectSiteMenuStyle() {
     .site-menu-item:hover { background:rgba(127,127,127,0.14); }
     .site-menu-item.active { font-weight:700; background:rgba(127,127,127,0.12); }
     .notification-menu-button { justify-content:space-between; }
+    .notice-btn-right { display:flex; align-items:center; gap:7px; }
     .menu-notice-count { background:#c0392b; font-size:0.7rem; padding:1px 7px; border-radius:999px; min-width:17px; text-align:center; }
-    .menu-notice-list { margin-top:4px; display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; }
+    .menu-notice-count.is-zero { background:rgba(127,127,127,0.35); }
+    .menu-notice-arrow { display:inline-block; font-size:0.7rem; opacity:0.6; transition:transform .18s ease; }
+    .notification-menu-button[aria-expanded="true"] .menu-notice-arrow { transform:rotate(180deg); }
+    .menu-notice-list { max-height:0; opacity:0; margin-top:0; overflow:hidden; display:flex; flex-direction:column; gap:4px;
+      transition:max-height .24s ease, opacity .18s ease, margin-top .24s ease; }
+    .menu-notice-list.open { max-height:240px; opacity:1; margin-top:8px; overflow-y:auto; padding-top:8px; border-top:1px solid rgba(127,127,127,0.18); }
     .notification-item { padding:7px 9px; border-radius:10px; font-size:0.8rem; line-height:1.3; }
     html[data-theme="light"] .notification-item, html:not([data-theme]) .notification-item { background:rgba(0,0,0,0.045); }
     html[data-theme="dark"] .notification-item { background:rgba(255,255,255,0.07); }
     .notification-item b { display:block; margin-bottom:1px; }
-    .notice-accordion-item { border-radius:10px; overflow:hidden; }
-    .notice-accordion-head { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; text-align:left; padding:7px 9px; border:none; cursor:pointer; font-family:var(--font-body); font-size:0.8rem; border-radius:10px; background:transparent; }
-    html[data-theme="light"] .notice-accordion-head, html:not([data-theme]) .notice-accordion-head { background:rgba(0,0,0,0.045); }
-    html[data-theme="dark"] .notice-accordion-head { background:rgba(255,255,255,0.07); }
-    .notice-accordion-head b { font-weight:700; }
-    .notice-accordion-arrow { opacity:0.6; font-size:0.7rem; flex-shrink:0; }
-    .notice-accordion-body { padding:6px 9px 9px; font-size:0.8rem; line-height:1.35; opacity:0.85; }
     .site-menu-langs-full, .theme-choices { display:flex; gap:5px; flex-wrap:wrap; }
     .site-menu-langs-full button, .theme-choices button { flex:1; min-width:78px; padding:7px 6px; border-radius:10px; border:1px solid transparent; background:rgba(127,127,127,0.1); cursor:pointer; font-family:var(--font-body); font-size:0.78rem; display:flex; flex-direction:column; align-items:center; gap:2px; transition:all .15s ease; }
     .site-menu-langs-full button.active, .theme-choices button.active { border-color:rgba(127,127,127,0.35); font-weight:700; }
@@ -100,17 +99,32 @@ function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop
 /* Avvisi: letti dalla tabella "notifications" su Supabase (per ruolo o per
    singolo utente). Lo stato "letto/non letto" resta locale al browser. */
 const PM_READ_NOTICES_KEY = "pm_read_notice_ids";
-const PM_NOTICE_HIDE_AFTER_MS = 5 * 60 * 60 * 1000; // l'avviso sparisce 5 ore dopo essere stato aperto
-function pmReadNoticeMap() { try { return JSON.parse(localStorage.getItem(PM_READ_NOTICES_KEY) || "{}"); } catch (_) { return {}; } }
-function pmSaveReadNoticeMap(map) { localStorage.setItem(PM_READ_NOTICES_KEY, JSON.stringify(map)); }
-/* Segna un singolo avviso come "visto" (aperto) solo la prima volta:
-   riaprirlo non sposta più avanti il conto alla rovescia delle 5 ore. */
-function pmMarkNoticeViewed(id) {
-  const map = pmReadNoticeMap();
-  if (!map[id]) { map[id] = Date.now(); pmSaveReadNoticeMap(map); }
-  return map;
+const PM_NOTICE_HIDE_AFTER_MS = 3 * 60 * 60 * 1000; // 3 ore dopo essere state viste, spariscono dalla lista
+function pmReadNoticeMap() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PM_READ_NOTICES_KEY) || "{}");
+    // Compatibilità con il vecchio formato (array di id, senza timestamp)
+    if (Array.isArray(raw)) { const map = {}; raw.forEach(function (id) { map[id] = Date.now(); }); return map; }
+    return raw && typeof raw === "object" ? raw : {};
+  } catch (_) { return {}; }
 }
-function pmIsNoticeExpired(id, map) { const viewedAt = map[id]; return !!viewedAt && (Date.now() - viewedAt) > PM_NOTICE_HIDE_AFTER_MS; }
+function pmSaveNoticeMap(map) { localStorage.setItem(PM_READ_NOTICES_KEY, JSON.stringify(map)); }
+function pmMarkNoticesRead(ids) {
+  const map = pmReadNoticeMap();
+  const now = Date.now();
+  ids.forEach(function (id) { if (!(id in map)) map[id] = now; }); // il timer parte dalla prima volta che viene vista
+  pmSaveNoticeMap(map);
+}
+function pmPruneNoticeMap(validIds) {
+  // Pulizia: toglie dallo storage gli id troppo vecchi o non più presenti tra le notifiche recenti
+  const map = pmReadNoticeMap();
+  const now = Date.now();
+  let changed = false;
+  Object.keys(map).forEach(function (id) {
+    if (now - map[id] > PM_NOTICE_HIDE_AFTER_MS || !validIds.has(id)) { delete map[id]; changed = true; }
+  });
+  if (changed) pmSaveNoticeMap(map);
+}
 async function pmFetchNotifications(user) {
   if (!user || !window.PM_DB) return [];
   const [byRole, byUser] = await Promise.all([
@@ -126,11 +140,15 @@ async function pmRenderSiteMenu(){
   pmBuildSiteMenuShell();const panel=document.getElementById("site-menu-panel"),user=typeof pmCurrentUser==="function"?pmCurrentUser():null,lang=typeof I18N!=="undefined"?I18N.current():"it",pref=pmThemePreference();let html="";
   let notices = [];
   if (user) notices = await pmFetchNotifications(user);
+  pmPruneNoticeMap(new Set(notices.map(function (n) { return n.id; })));
   const readMap = pmReadNoticeMap();
-  // Gli avvisi già aperti spariscono 5 ore dopo la visualizzazione.
-  notices = notices.filter(function (n) { return !pmIsNoticeExpired(n.id, readMap); });
-  const unread = notices.filter(function (n) { return !readMap[n.id]; }).length;
-  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Vai alla dashboard","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices">🔔 Avvisi <span class="menu-notice-count">'+unread+'</span></button><div class="menu-notice-list" id="site-menu-notice-list" hidden>'+pmNoticeList(notices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Disconnetti account</a></div>';}else{html+='<div class="site-menu-section">'+pmMenuItem("login.html","Accedi con Telegram","✈")+'</div>';}
+  const now = Date.now();
+  const visibleNotices = notices.filter(function (n) {
+    const seenAt = readMap[n.id];
+    return seenAt === undefined || (now - seenAt) < PM_NOTICE_HIDE_AFTER_MS;
+  });
+  const unread = visibleNotices.filter(function (n) { return readMap[n.id] === undefined; }).length;
+  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>🔔 Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">▾</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section">'+pmMenuItem("login.html","Accesso personale","▣")+pmMenuItem("area-personale.html","Area personale Telegram","✈")+'</div>';}
   html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><div class="site-menu-langs site-menu-langs-full"><button data-lang="it" class="'+(lang==="it"?"active":"")+'">IT · Italiano</button><button data-lang="es" class="'+(lang==="es"?"active":"")+'">ESP · Spagnolo</button><button data-lang="en" class="'+(lang==="en"?"active":"")+'">ENG · Inglese</button></div></div>';
   html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">☼<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">☾<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">▣<span>Dispositivo</span></button></div></div>';
   panel.innerHTML=html;
@@ -139,31 +157,16 @@ async function pmRenderSiteMenu(){
   panel.querySelectorAll("[data-lang]").forEach(function(b){b.addEventListener("click",function(){if(typeof I18N!=="undefined")I18N.load(b.dataset.lang);});});
   panel.querySelectorAll("[data-theme-choice]").forEach(function(b){b.addEventListener("click",function(){pmSetTheme(b.dataset.themeChoice);});});
   const noticesBtn=document.getElementById("site-menu-notices"),list=document.getElementById("site-menu-notice-list");
-  if(noticesBtn&&list){
-    noticesBtn.addEventListener("click",function(){ list.hidden=!list.hidden; });
-    // Ogni avviso è a sua volta un accordion: si apre/chiude singolarmente e,
-    // alla prima apertura, parte il conto alla rovescia delle 5 ore.
-    list.querySelectorAll(".notice-accordion-head").forEach(function(head){
-      head.addEventListener("click",function(){
-        const item=head.closest(".notice-accordion-item"),body=item.querySelector(".notice-accordion-body"),id=item.dataset.noticeId;
-        const wasHidden=body.hidden; body.hidden=!body.hidden;
-        if(wasHidden){
-          const map=pmMarkNoticeViewed(id);
-          const stillUnread=notices.filter(function(n){return !map[n.id];}).length;
-          const countEl=noticesBtn.querySelector(".menu-notice-count");
-          if(countEl)countEl.textContent=String(stillUnread);
-        }
-      });
-    });
-  }
+  if(noticesBtn&&list)noticesBtn.addEventListener("click",function(){
+    const willOpen=!list.classList.contains("open");
+    list.classList.toggle("open",willOpen);
+    noticesBtn.setAttribute("aria-expanded",String(willOpen));
+    if(willOpen){
+      pmMarkNoticesRead(visibleNotices.map(function(n){return n.id;}));
+      const countEl=noticesBtn.querySelector(".menu-notice-count");
+      if(countEl){countEl.textContent="0";countEl.classList.add("is-zero");}
+    }
+  });
 }
-function pmNoticeList(items){
-  if(!items.length)return '<div class="notification-item">Nessun avviso.</div>';
-  return items.slice(0,5).map(function(n){
-    return '<div class="notice-accordion-item" data-notice-id="'+n.id+'">'
-      +'<button type="button" class="notice-accordion-head"><b>'+n.title+'</b><span class="notice-accordion-arrow">▾</span></button>'
-      +'<div class="notice-accordion-body" hidden><span>'+n.body+'</span></div>'
-    +'</div>';
-  }).join("");
-}
+function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">Nessun avviso.</div>';}
 document.addEventListener("DOMContentLoaded",pmRenderSiteMenu);document.addEventListener("i18n:changed",pmRenderSiteMenu);
