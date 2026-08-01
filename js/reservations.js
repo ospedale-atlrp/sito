@@ -92,9 +92,16 @@ async function pmTakeReservation(id) {
 async function pmCloseReservation(id) {
   const ok = await pmConfirm('Chiudere questa pratica? Non sarà più possibile scrivere nella chat.');
   if (!ok) return;
-  const {error}=await PM_DB.from('reservations').update({status:'chiusa',closed_at:new Date().toISOString()}).eq('id',id);
-  if(error) pmToast(error.message,'error');
-  else pmToast('Pratica chiusa.','success');
+  const { data, error } = await PM_DB.functions.invoke('close-reservation', { body: { reservationId: id } });
+  let serverMessage = null;
+  if (error && error.context && typeof error.context.json === 'function') {
+    try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
+  }
+  if (error || !data || data.error) {
+    pmToast(serverMessage || (data && data.error) || 'Errore nella chiusura della pratica.', 'error');
+    return;
+  }
+  pmToast(data.telegramSent ? 'Pratica chiusa. Paziente avvisato su Telegram.' : 'Pratica chiusa. (Il paziente non ha ancora avviato il bot: avvisato solo sul sito.)', 'success');
 }
 async function pmDeleteReservation(id) {
   const ok = await pmConfirm('Eliminare questa prenotazione? L\'operazione non è reversibile.');
