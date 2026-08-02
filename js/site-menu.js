@@ -109,12 +109,39 @@ function pmBuildSiteMenuShell(){
 function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop()||"index.html";return '<a href="'+href+'" class="site-menu-item '+(page===href?"active":"")+'">'+(icon?icon+" ":"")+label+'</a>';}
 
 /* Avvisi: letti dalla tabella "notifications" su Supabase (per ruolo o per
-   singolo utente). Lo stato "letto/non letto" resta locale al browser. */
+   singolo utente). Lo stato "letto/non letto" vive nella tabella
+   notification_status. */
 const PM_NOTICE_HIDE_AFTER_MS = 3 * 60 * 60 * 1000; // 3 ore dopo essere state viste, spariscono dalla lista
-/* Stato "letta"/"eliminata" delle notifiche: salvato su Supabase (tabella
-   notification_status, una riga per utente+notifica) invece che nella
-   memoria del browser, così è coerente su ogni dispositivo/browser da cui
-   si accede, e non si perde tra logout e login. */
+/* Salvataggio di "letta"/"eliminata": usa fetch con keepalive:true invece
+   del client Supabase normale, perché queste scritture partono spesso un
+   attimo prima di un cambio pagina (chiudi il pannello ed esci, o navighi
+   altrove) — con un fetch normale il browser interrompe la richiesta a
+   metà quando la pagina cambia, e lo stato non viene mai salvato davvero.
+   keepalive fa sì che la richiesta venga comunque completata in background
+   anche se la pagina che l'ha avviata non c'è più. Usato solo qui (non su
+   tutte le chiamate Supabase) perché il browser limita la quantità totale
+   di dati "in volo" nelle richieste keepalive: per questi payload minuscoli
+   non è un problema, per fetch più grandi (liste, upload) lo sarebbe. */
+async function pmSupabaseKeepaliveUpsert(table, rows, onConflictCols) {
+  if (!window.PM_SUPABASE_URL || !window.PM_SUPABASE_PUBLISHABLE_KEY || !window.PM_DB) return;
+  try {
+    const { data: sessionData } = await PM_DB.auth.getSession();
+    const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
+    if (!token) return;
+    const url = window.PM_SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/" + table + "?on_conflict=" + encodeURIComponent(onConflictCols);
+    await fetch(url, {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": window.PM_SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": "Bearer " + token,
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+      },
+      body: JSON.stringify(rows),
+    });
+  } catch (_) { /* un salvataggio di stato avviso mancato non deve bloccare l'interfaccia */ }
+}
 async function pmFetchNotificationStatus(user) {
   if (!user || !window.PM_DB) return {};
   const { data, error } = await PM_DB.from("notification_status").select("notification_id, seen_at, dismissed_at").eq("user_id", user.id);
@@ -123,19 +150,14 @@ async function pmFetchNotificationStatus(user) {
   return map;
 }
 async function pmMarkNoticesSeen(user, ids) {
-  if (!user || !window.PM_DB || !ids.length) return;
+  if (!user || !ids.length) return;
   const now = new Date().toISOString();
   const rows = ids.map(function (id) { return { user_id: user.id, notification_id: id, seen_at: now }; });
-  try { await PM_DB.from("notification_status").upsert(rows, { onConflict: "user_id,notification_id" }); } catch (_) { /* un avviso non segnato come letto non deve bloccare l'interfaccia */ }
+  await pmSupabaseKeepaliveUpsert("notification_status", rows, "user_id,notification_id");
 }
 async function pmDismissNotice(user, id) {
-  if (!user || !window.PM_DB) return;
-  try {
-    await PM_DB.from("notification_status").upsert(
-      { user_id: user.id, notification_id: id, dismissed_at: new Date().toISOString() },
-      { onConflict: "user_id,notification_id" }
-    );
-  } catch (_) { /* un'eliminazione non salvata non deve bloccare l'interfaccia */ }
+  if (!user) return;
+  await pmSupabaseKeepaliveUpsert("notification_status", [{ user_id: user.id, notification_id: id, dismissed_at: new Date().toISOString() }], "user_id,notification_id");
 }
 async function pmFetchNotifications(user) {
   if (!user || !window.PM_DB) return [];
