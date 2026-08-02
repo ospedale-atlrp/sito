@@ -82,11 +82,19 @@
       </div>
 
       <!-- Visibile solo a chi può ricevere richieste (Medici/Chirurghi/Dirigente) -->
-      <div id="received-reservations-panel" class="pm-segment-panel" data-seg-panel="ricevute" data-seg-label="Prenotazioni ricevute">
-        <h2>Prenotazioni ricevute</h2>
-        <p class="form-note">Prenotazioni compilate dal personale e indirizzate al tuo ruolo.</p>
+      <div id="received-reservations-panel" class="pm-segment-panel" data-seg-panel="ricevute" data-seg-label="Le prenotazioni dei pazienti">
+        <h2>Le prenotazioni dei pazienti</h2>
+        <p class="form-note">Prenotazioni indirizzate al tuo ruolo, in attesa o che segui tu. Non include eventuali prenotazioni dove sei tu il paziente: quelle sono nella scheda "Le mie prenotazioni".</p>
         <div class="reservation-counters" id="reservation-counters"></div>
         <div class="reservations-list" id="received-reservations-list" style="margin-top:16px;"></div>
+      </div>
+
+      <!-- Visibile a TUTTO lo staff (infermieri compresi): qui ognuno vede le
+           prenotazioni dove è LUI il paziente, a prescindere dal suo ruolo. -->
+      <div class="pm-segment-panel" data-seg-panel="mie-staff" data-seg-label="Le mie prenotazioni">
+        <h2>Le mie prenotazioni</h2>
+        <p class="form-note">Stato delle prenotazioni fatte a tuo nome (anche se compilate da un collega per te).</p>
+        <div class="reservations-list" id="staff-my-reservations-list" style="margin-top:16px;"></div>
       </div>
 
       <!-- Visibile a tutti, Direzione compresa -->
