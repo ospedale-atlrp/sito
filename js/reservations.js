@@ -6,6 +6,20 @@ const PM_RECIPIENTS = {
 };
 function pmCanRegister(user) { return !!user && !!window.PM_DB; }
 function pmIsReservationRecipient(user) { return !!user && (user.isSuperAdmin || PM_RECIPIENTS.certificato_medico.includes(user.role) || PM_RECIPIENTS.cambio_sesso.includes(user.role)); }
+/* Stessa identica logica usata lato server (take-reservation,
+   send-reservation-message, close-reservation): il "vero" paziente di una
+   prenotazione è chi ha quell'username Telegram indicato, non
+   necessariamente chi l'ha compilata (citizen_id). Se non c'è un
+   username indicato (prenotazioni "per me stesso"), il paziente coincide
+   con chi l'ha creata. Questo vale SEMPRE, qualunque sia il ruolo attuale
+   della persona: un medico può essere paziente di una prenotazione altrui,
+   e deve vederla come tale, non mescolata al proprio lavoro. */
+function pmIsPatientOf(r, user) {
+  if (!r || !user) return false;
+  const handle = String(r.telegram_username || '').trim().replace(/^@/, '').toLowerCase();
+  if (handle) return handle === String(user.telegramUsername || '').trim().toLowerCase();
+  return r.citizen_id === user.id;
+}
 /* Solo da Infermiere Assistente in su (nell'ordine gerarchico di PM_ROLES,
    dove l'indice 0 è il grado più alto) si può compilare una richiesta;
    Paramedici e Specializzandi possono solo consultare. */
@@ -123,7 +137,11 @@ async function pmRenderReceivedReservations(listId) {
   listId = listId || 'received-reservations-list';
   const list=document.getElementById(listId), user=pmCurrentUser(); if(!list||!user)return;
   if (!pmIsReservationRecipient(user)) { list.innerHTML=''; return; }
-  const rows=(await pmReservationsForUser(user)).filter(r=>(user.isSuperAdmin||r.target_roles.includes(user.role))&&['inviata','presa_in_carico'].includes(r.status));
+  const rows=(await pmReservationsForUser(user)).filter(r=>
+    (user.isSuperAdmin||r.target_roles.includes(user.role))
+    && !pmIsPatientOf(r,user)
+    && (r.status==='inviata' || (r.status==='presa_in_carico' && r.assigned_staff_id===user.id))
+  );
   list.innerHTML=rows.length?rows.map(r=>pmReservationRow(r,user)).join(''):'<div class="reservations-empty">Nessuna prenotazione in attesa.</div>';
   list.querySelectorAll('.js-take').forEach(b=>b.addEventListener('click',()=>{pmTakeReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
   list.querySelectorAll('.js-close').forEach(b=>b.addEventListener('click',()=>{pmCloseReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
@@ -140,7 +158,7 @@ function pmMyReservationRow(r) {
 }
 async function pmRenderMyReservations(containerId) {
   const el=document.getElementById(containerId),user=pmCurrentUser(); if(!el||!user)return;
-  const rows=(await pmReservationsForUser(user)).filter(r=>r.citizen_id===user.id);
+  const rows=(await pmReservationsForUser(user)).filter(r=>pmIsPatientOf(r,user));
   el.innerHTML=rows.length?rows.map(pmMyReservationRow).join(''):'<div class="reservations-empty">Non hai ancora creato prenotazioni.</div>';
   el.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id); }));
 }
