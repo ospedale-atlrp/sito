@@ -62,10 +62,10 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
     agonistico = form.agonistico.value === 'si';
   }
 
-  const {error}=await PM_DB.from('reservations').insert({
+  const {data:inserted,error}=await PM_DB.from('reservations').insert({
     citizen_id:user.id, citizen_username:user.username, type, nome, cognome, codice_fiscale:cf,
     sesso, telegram_username:telegram, target_roles:recipientRoles||PM_RECIPIENTS[type], status:'inviata', agonistico
-  });
+  }).select('id').single();
   if(error) return pmShowReservationMessage(ids,error.message,false);
   pmShowReservationMessage(ids,successMsg+' La richiesta è stata inviata al personale competente.',true); form.reset();
   if (typeof pmCreateNotification === 'function') {
@@ -74,6 +74,11 @@ async function pmHandleReservationSubmit(e,type,recipientRoles,successMsg,ids) {
       title: 'Nuova prenotazione',
       body: (user.name || user.username) + ' ha inviato una richiesta di ' + PM_RESERVATION_LABELS[type] + '.',
     });
+  }
+  if (inserted && inserted.id) {
+    // Notifiche Telegram (medico + paziente): non blocca l'esito del form
+    // se dovesse fallire, l'importante è che la prenotazione sia salvata.
+    PM_DB.functions.invoke('notify-reservation-created', { body: { reservationId: inserted.id } }).catch(() => {});
   }
   pmRenderReceivedReservations('received-reservations-list');
 }
@@ -93,9 +98,16 @@ async function pmTakeReservation(id) {
 async function pmCloseReservation(id) {
   const ok = await pmConfirm('Chiudere questa pratica? Non sarà più possibile scrivere nella chat.');
   if (!ok) return;
-  const {error}=await PM_DB.from('reservations').update({status:'chiusa',closed_at:new Date().toISOString()}).eq('id',id);
-  if(error) pmToast(error.message,'error');
-  else pmToast('Pratica chiusa.','success');
+  const { data, error } = await PM_DB.functions.invoke('close-reservation', { body: { reservationId: id } });
+  let serverMessage = null;
+  if (error && error.context && typeof error.context.json === 'function') {
+    try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
+  }
+  if (error || !data || data.error) {
+    pmToast(serverMessage || (data && data.error) || 'Errore nella chiusura.', 'error');
+    return;
+  }
+  pmToast('Pratica chiusa. Paziente avvisato.','success');
 }
 function pmReservationRow(r,user) {
   const assigned=r.assigned_staff_id===user.id;
