@@ -1,10 +1,9 @@
 /* Accesso staff condiviso tramite Supabase. Le password non sono nel sito. */
 const PM_ROLES = [
-  'Admin', 'Dirigente', 'Chirurgo Primario', 'Chirurgo Vice Primario', 'Chirurgo Strutturato',
+  'Dirigente', 'Chirurgo Primario', 'Chirurgo Vice Primario', 'Chirurgo Strutturato',
   'Chirurgo Specializzando', 'Medico Responsabile Ambulatorio', 'Medico Responsabile di Laboratorio', 'Medico di Laboratorio',
   'Medico di Base', 'Infermiere Coordinatore', 'Infermiere di Équipe',
-  'Infermiere Assistente', 'Paramedico Coordinatore PS', 'Paramedico Senior',
-  'Paramedico', 'Specializzando'
+  'Infermiere Assistente'
 ];
 const PM_ADMIN_ROLES = ['Chirurgo Primario', 'Dirigente', 'Admin'];
 
