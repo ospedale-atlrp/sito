@@ -45,12 +45,9 @@
   }
 
   async function loadMessages(reservationId) {
-    const { data, error } = await PM_DB
-      .from('reservation_messages')
-      .select('*')
-      .eq('reservation_id', reservationId)
-      .order('created_at', { ascending: true });
-    return error ? [] : (data || []);
+    const { data, error } = await PM_DB.functions.invoke('list-reservation-messages', { body: { reservationId } });
+    if (error || !data || data.error) return [];
+    return data.messages || [];
   }
 
   async function renderMessages(container, reservationId, user) {
