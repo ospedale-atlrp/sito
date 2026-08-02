@@ -112,7 +112,10 @@ async function pmInitDashboard() {
     }
     if (typeof pmMountSegments === 'function') {
       pmMountSegments(staffBar, staffPanels, {
-        onActivate: (id) => { if (id === 'ricevute' && typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list'); },
+        onActivate: (id) => {
+          if (id === 'ricevute' && typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list');
+          if (id === 'mie-staff' && typeof pmRenderMyReservations === 'function') pmRenderMyReservations('staff-my-reservations-list');
+        },
       });
     }
     pmWireAllModalitaToggles(staffPanels);
@@ -130,6 +133,7 @@ async function pmInitDashboard() {
   if (isManagement && typeof pmRenderPromotionCreatePanel === 'function') pmRenderPromotionCreatePanel();
 
   if (typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list');
+  if (typeof pmRenderMyReservations === 'function') pmRenderMyReservations('staff-my-reservations-list');
   if (typeof pmRenderStaffDirectory === 'function') pmRenderStaffDirectory();
   if (typeof pmRenderSiteMenu === 'function') await pmRenderSiteMenu();
 }
