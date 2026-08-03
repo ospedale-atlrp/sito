@@ -5,7 +5,7 @@ const PM_RECIPIENTS = {
   cambio_sesso: ['Chirurgo Specializzando', 'Chirurgo Strutturato', 'Chirurgo Vice Primario', 'Chirurgo Primario', 'Dirigente']
 };
 function pmCanRegister(user) { return !!user && !!window.PM_DB; }
-function pmIsReservationRecipient(user) { return !!user && (user.isSuperAdmin || PM_RECIPIENTS.certificato_medico.includes(user.role) || PM_RECIPIENTS.cambio_sesso.includes(user.role)); }
+function pmIsReservationRecipient(user) { return !!user && (PM_RECIPIENTS.certificato_medico.includes(user.role) || PM_RECIPIENTS.cambio_sesso.includes(user.role)); }
 /* Stessa identica logica usata lato server (take-reservation,
    send-reservation-message, close-reservation): il "vero" paziente di una
    prenotazione è chi ha quell'username Telegram indicato, non
@@ -47,11 +47,6 @@ async function pmCreateNotification(opts) {
 }
 async function pmReservationsForUser(user) {
   if (!window.PM_DB || !user) return [];
-  if (user.isSuperAdmin) {
-    const { data, error } = await PM_DB.functions.invoke('admin-list-reservations', { body: {} });
-    if (error || !data || data.error) return [];
-    return data.reservations || [];
-  }
   const {data,error}=await PM_DB.from('reservations').select('*').order('created_at',{ascending:false});
   return error ? [] : (data||[]);
 }
@@ -138,7 +133,7 @@ async function pmRenderReceivedReservations(listId) {
   const list=document.getElementById(listId), user=pmCurrentUser(); if(!list||!user)return;
   if (!pmIsReservationRecipient(user)) { list.innerHTML=''; return; }
   const rows=(await pmReservationsForUser(user)).filter(r=>
-    (user.isSuperAdmin||r.target_roles.includes(user.role))
+    r.target_roles.includes(user.role)
     && !pmIsPatientOf(r,user)
     && (r.status==='inviata' || (r.status==='presa_in_carico' && r.assigned_staff_id===user.id))
   );
