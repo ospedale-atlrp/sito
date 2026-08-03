@@ -106,19 +106,34 @@ async function pmInitDashboard() {
       const richieste = staffPanels.querySelector('[data-seg-panel="richieste"]');
       if (richieste) richieste.remove();
     }
-    if (typeof pmIsReservationRecipient === 'function' && !pmIsReservationRecipient(user)) {
-      const ricevute = staffPanels.querySelector('[data-seg-panel="ricevute"]');
-      if (ricevute) ricevute.remove();
-    }
     if (typeof pmMountSegments === 'function') {
       pmMountSegments(staffBar, staffPanels, {
-        onActivate: (id) => {
-          if (id === 'ricevute' && typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list');
-          if (id === 'mie-staff' && typeof pmRenderMyReservations === 'function') pmRenderMyReservations('staff-my-reservations-list');
-        },
+        onActivate: (id) => { /* la scheda "prenotazioni" gestisce da sola l'isola interna, vedi sotto */ },
       });
     }
     pmWireAllModalitaToggles(staffPanels);
+  }
+
+  // Isola interna "Le mie prenotazioni" / "Le prenotazioni dei pazienti":
+  // chi non gestisce prenotazioni (Infermieri) vede solo "Le mie
+  // prenotazioni" — il secondo pannello viene proprio tolto dal DOM, quindi
+  // l'isola sparisce da sola (un solo pannello = nessuna barra, vedi
+  // ui-tabs.js) e si va dritti al contenuto, senza alcuna scelta visibile.
+  const subBar = document.getElementById('reservation-sub-bar');
+  const subPanels = document.getElementById('reservation-sub-panels');
+  if (subPanels) {
+    if (typeof pmIsReservationRecipient === 'function' && !pmIsReservationRecipient(user)) {
+      const pazienti = subPanels.querySelector('[data-seg-panel="pazienti"]');
+      if (pazienti) pazienti.remove();
+    }
+    if (typeof pmMountSegments === 'function') {
+      pmMountSegments(subBar, subPanels, {
+        onActivate: (id) => {
+          if (id === 'pazienti' && typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list');
+          if (id === 'mie' && typeof pmRenderMyReservations === 'function') pmRenderMyReservations('staff-my-reservations-list');
+        },
+      });
+    }
   }
 
   // Riquadro largo della Direzione (Gestione Account / Gestione Bandi), separato
@@ -132,8 +147,6 @@ async function pmInitDashboard() {
   }
   if (isManagement && typeof pmRenderPromotionCreatePanel === 'function') pmRenderPromotionCreatePanel();
 
-  if (typeof pmRenderReceivedReservations === 'function') pmRenderReceivedReservations('received-reservations-list');
-  if (typeof pmRenderMyReservations === 'function') pmRenderMyReservations('staff-my-reservations-list');
   if (typeof pmRenderStaffDirectory === 'function') pmRenderStaffDirectory();
   if (typeof pmRenderSiteMenu === 'function') await pmRenderSiteMenu();
 }
