@@ -81,20 +81,29 @@
         </div>
       </div>
 
-      <!-- Visibile solo a chi può ricevere richieste (Medici/Chirurghi/Dirigente) -->
-      <div id="received-reservations-panel" class="pm-segment-panel" data-seg-panel="ricevute" data-seg-label="Le prenotazioni dei pazienti">
-        <h2>Le prenotazioni dei pazienti</h2>
-        <p class="form-note">Prenotazioni indirizzate al tuo ruolo, in attesa o che segui tu. Non include eventuali prenotazioni dove sei tu il paziente: quelle sono nella scheda "Le mie prenotazioni".</p>
-        <div class="reservation-counters" id="reservation-counters"></div>
-        <div class="reservations-list" id="received-reservations-list" style="margin-top:16px;"></div>
-      </div>
+      <!-- Un'unica scheda "Prenotazioni": chi gestisce prenotazioni (Medico
+           di Base in su) vede l'isola interna con 2 pulsanti; chi non le
+           gestisce (Infermieri) ha un solo pannello, quindi l'isola
+           interna sparisce da sola (vedi ui-tabs.js) e va dritto a
+           "Le mie prenotazioni" senza che si veda nessuna scelta. -->
+      <div class="pm-segment-panel" data-seg-panel="prenotazioni" data-seg-label="Prenotazioni">
+        <div id="reservation-sub-bar" style="margin-bottom:20px;"></div>
+        <div id="reservation-sub-panels">
 
-      <!-- Visibile a TUTTO lo staff (infermieri compresi): qui ognuno vede le
-           prenotazioni dove è LUI il paziente, a prescindere dal suo ruolo. -->
-      <div class="pm-segment-panel" data-seg-panel="mie-staff" data-seg-label="Le mie prenotazioni">
-        <h2>Le mie prenotazioni</h2>
-        <p class="form-note">Stato delle prenotazioni fatte a tuo nome (anche se compilate da un collega per te).</p>
-        <div class="reservations-list" id="staff-my-reservations-list" style="margin-top:16px;"></div>
+          <div class="pm-segment-panel" data-seg-panel="mie" data-seg-label="Le mie prenotazioni">
+            <h2>Le mie prenotazioni</h2>
+            <p class="form-note">Stato delle prenotazioni fatte a tuo nome (anche se compilate da un collega per te).</p>
+            <div class="reservations-list" id="staff-my-reservations-list" style="margin-top:16px;"></div>
+          </div>
+
+          <div class="pm-segment-panel" data-seg-panel="pazienti" data-seg-label="Le prenotazioni dei pazienti">
+            <h2>Le prenotazioni dei pazienti</h2>
+            <p class="form-note">Prenotazioni indirizzate al tuo ruolo, in attesa o che segui tu.</p>
+            <div class="reservation-counters" id="reservation-counters"></div>
+            <div class="reservations-list" id="received-reservations-list" style="margin-top:16px;"></div>
+          </div>
+
+        </div>
       </div>
 
       <!-- Visibile a tutti, Direzione compresa -->
@@ -258,6 +267,7 @@
 <script src="../js/supabase-client.js"></script>
 <script src="../js/ui-dialogs.js"></script>
 <script src="../js/ui-tabs.js"></script>
+<script src="../js/ui-selects.js"></script>
 <script src="../js/i18n.js"></script>
 <script src="../js/main.js"></script>
 <script src="../js/auth.js"></script>
