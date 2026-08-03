@@ -10,8 +10,9 @@
     const style = document.createElement('style');
     style.id = 'pm-segmented-style';
     style.textContent = `
-      .pm-segmented { display:inline-flex; flex-wrap:wrap; gap:4px; padding:5px; border-radius:999px; margin-bottom:22px;
+      .pm-segmented { display:flex; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; gap:4px; padding:5px; border-radius:999px; margin-bottom:22px; max-width:100%;
         backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+      .pm-segmented::-webkit-scrollbar { display:none; }
       html[data-theme="light"] .pm-segmented, html:not([data-theme]) .pm-segmented {
         background: rgba(255,255,255,0.55); box-shadow: 0 4px 20px rgba(20,20,30,0.09); border:1px solid rgba(0,0,0,0.06); }
       html[data-theme="light"] .pm-segmented.pm-segmented-dark, html:not([data-theme]) .pm-segmented.pm-segmented-dark {
