@@ -258,6 +258,24 @@
       </div>
     </div>
 
+    <!-- Visibile SOLO al super-admin (non a tutta la Direzione): gestione
+         dei ticket di segnalazione bug e richieste di modifica. -->
+    <div class="pm-segment-panel" data-seg-panel="segnalazioni" data-seg-label="Segnalazioni">
+      <div class="panel-card">
+        <span class="eyebrow">Amministrazione</span>
+        <h2>Segnalazioni</h2>
+        <div id="bug-admin-sub-bar" style="margin:16px 0 0;"></div>
+        <div id="bug-admin-sub-panels">
+          <div class="pm-segment-panel" data-seg-panel="bug" data-seg-label="Bug">
+            <div class="reservations-list" id="bug-admin-list-bug" style="margin-top:16px;"></div>
+          </div>
+          <div class="pm-segment-panel" data-seg-panel="modifiche" data-seg-label="Modifiche">
+            <div class="reservations-list" id="bug-admin-list-modifica" style="margin-top:16px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -275,6 +293,8 @@
 <script src="../js/reservations.js"></script>
 <script src="../js/reservation-chat.js"></script>
 <script src="../js/promotion-codes.js"></script>
+<script src="../js/bug-report-chat.js"></script>
+<script src="../js/bug-reports-admin.js"></script>
 <script src="../js/staff-directory.js"></script>
 <script>
   var PM_REQUEST_TYPES = {
@@ -320,7 +340,7 @@
         var isCertificato = tipoSelect.value === "certificato_medico";
         agonField.style.display = isCertificato ? "" : "none";
         agonSelect.required = isCertificato;
-        if (!isCertificato) agonSelect.value = "";
+        if (!isCertificato) { agonSelect.value = ""; if (typeof pmRefreshSelect === "function") pmRefreshSelect(agonSelect); }
       }
     });
     var form = document.getElementById("hospital-form" + suffix);
