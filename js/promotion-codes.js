@@ -25,6 +25,8 @@
       const assignable = user.isSuperAdmin ? PM_ROLES : (myIndex === -1 ? PM_ROLES : PM_ROLES.slice(myIndex + 1));
       roleSelect.innerHTML = '<option value="" disabled selected>Seleziona</option>' +
         assignable.map((r) => `<option value="${r}">${r}</option>`).join('');
+      if (typeof pmEnhanceSelects === 'function') pmEnhanceSelects(form);
+      if (typeof pmRefreshSelect === 'function') pmRefreshSelect(roleSelect);
     }
 
     form.addEventListener('submit', async (e) => {
