@@ -136,14 +136,20 @@ async function pmInitDashboard() {
     }
   }
 
-  // Riquadro largo della Direzione (Gestione Account / Gestione Bandi), separato
-  // perché la tabella account ha bisogno di più spazio orizzontale.
+  // Riquadro largo della Direzione (Gestione Account / Codici Promozione / Segnalazioni).
   const direction = document.getElementById('direction-actions');
   const directionPanels = document.getElementById('direction-segment-panels');
   const directionBar = document.getElementById('direction-segment-bar');
   if (direction) direction.style.display = isManagement ? 'block' : 'none';
+  if (directionPanels && !user.isSuperAdmin) {
+    // "Segnalazioni" è visibile SOLO al super-admin, non a tutta la Direzione.
+    const segnalazioni = directionPanels.querySelector('[data-seg-panel="segnalazioni"]');
+    if (segnalazioni) segnalazioni.remove();
+  }
   if (isManagement && directionPanels && typeof pmMountSegments === 'function') {
-    pmMountSegments(directionBar, directionPanels);
+    pmMountSegments(directionBar, directionPanels, {
+      onActivate: (id) => { if (id === 'segnalazioni' && typeof pmRenderBugReportsAdminPanel === 'function') pmRenderBugReportsAdminPanel(); },
+    });
   }
   if (isManagement && typeof pmRenderPromotionCreatePanel === 'function') pmRenderPromotionCreatePanel();
 
