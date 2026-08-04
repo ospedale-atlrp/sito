@@ -2,6 +2,10 @@
 (function () {
   const esc = value => String(value || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   const allRoles = () => typeof PM_ROLES !== 'undefined' ? PM_ROLES : [];
+  // Stesso account riconosciuto come super-admin altrove (lì per Telegram ID,
+  // qui per username perché staff_directory non ha il Telegram ID salvato:
+  // è solo un'etichetta visiva, il controllo di sicurezza vero è sul server.
+  const SUPER_ADMIN_USERNAMES = ['TheG0ldenPig'];
   const editableRoles = () => { const user = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; const roles = allRoles(); if (user && user.isSuperAdmin) return roles; return user ? roles.slice(roles.indexOf(user.role) + 1) : []; };
   const roleOptions = (selected, includeSelected = true) => { const roles = editableRoles(); const visible = includeSelected && !roles.includes(selected) ? [selected].concat(roles) : roles; return '<option value="" disabled>Seleziona un ruolo</option>'+visible.map(role => '<option '+(role === selected ? 'selected' : '')+'>'+esc(role)+'</option>').join(''); };
   function isManager() { const u = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null; return u && (u.isSuperAdmin || ['Dirigente','Chirurgo Primario','Admin'].includes(u.role)); }
@@ -29,8 +33,10 @@
     const ordered = (data || []).slice().sort((a, b) => roleIndex(a.role) - roleIndex(b.role) || a.display_name.localeCompare(b.display_name, 'it'));
     table.innerHTML = ordered.map(person => {
       const editable = editableRoles().includes(person.role);
-      return '<tr data-username="'+esc(person.username)+'"><td><input class="staff-text-input js-username" value="'+esc(person.username)+'"></td><td><input class="staff-text-input js-name" value="'+esc(person.display_name)+'"></td><td>'+ (editable ? '<select class="staff-role-select js-role">'+roleOptions(person.role)+'</select>' : '<span class="staff-role-label">'+esc(person.role)+'</span>') +'</td><td>'+ (person.active ? '<span class="staff-status is-active">Attivo</span>' : '<span class="staff-status">Disattivato</span>') +'</td><td><div class="staff-action-buttons"><button class="btn btn-sm btn-primary js-details">Aggiorna dati</button> <button class="btn btn-sm btn-danger js-fire">Licenzia</button></div></td></tr>';
+      const badge = SUPER_ADMIN_USERNAMES.includes(person.username) ? ' <span class="staff-status is-active" style="margin-left:4px;">Extra Admin</span>' : '';
+      return '<tr data-username="'+esc(person.username)+'"><td><input class="staff-text-input js-username" value="'+esc(person.username)+'"></td><td><input class="staff-text-input js-name" value="'+esc(person.display_name)+'"></td><td>'+ (editable ? '<select class="staff-role-select js-role">'+roleOptions(person.role)+'</select>' : '<span class="staff-role-label">'+esc(person.role)+'</span>') + badge +'</td><td>'+ (person.active ? '<span class="staff-status is-active">Attivo</span>' : '<span class="staff-status">Disattivato</span>') +'</td><td><div class="staff-action-buttons"><button class="btn btn-sm btn-primary js-details">Aggiorna dati</button> <button class="btn btn-sm btn-danger js-fire">Licenzia</button></div></td></tr>';
     }).join('') || '<tr><td colspan="5">Nessun dipendente trovato.</td></tr>';
+    if (typeof pmEnhanceSelects === 'function') pmEnhanceSelects(table);
     if (isManager()) bindRows(table); else table.querySelectorAll('select,input,button').forEach(el => el.disabled = true);
   }
   function bindRows(table) {
