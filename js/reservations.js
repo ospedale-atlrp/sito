@@ -189,7 +189,7 @@ async function pmInitPatientDashboard(user) {
         const isCertificato = form.tipo.value === 'certificato_medico';
         agonField.style.display = isCertificato ? '' : 'none';
         agonSelect.required = isCertificato;
-        if (!isCertificato) agonSelect.value = '';
+        if (!isCertificato) { agonSelect.value = ''; if (typeof pmRefreshSelect === 'function') pmRefreshSelect(agonSelect); }
       });
     }
 
