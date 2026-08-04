@@ -1,0 +1,230 @@
+/* Popup chat per una prenotazione "Presa in carico". Overlay proprio
+   (coerente con lo stile a isole/vetro del resto del sito) ma con un
+   design dedicato, più curato del semplice modal generico. */
+(function () {
+  let pollTimer = null;
+  let currentReservationId = null;
+  let lastRenderedCount = -1;
+
+  function esc(value) {
+    return String(value || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function formatTime(value) {
+    try { return new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
+    catch (_) { return ''; }
+  }
+  function formatDay(value) {
+    try {
+      const d = new Date(value), today = new Date();
+      const sameDay = d.toDateString() === today.toDateString();
+      if (sameDay) return 'Oggi';
+      return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' }).format(d);
+    } catch (_) { return ''; }
+  }
+
+  function bubbleHtml(message, isMine, showMeta) {
+    const meta = showMeta ? '<div class="chat-bubble-meta">' + esc(message.sender_role) + '</div>' : '';
+    return (
+      '<div class="chat-bubble-row ' + (isMine ? 'is-mine' : '') + '">' +
+        '<div class="chat-bubble-stack">' +
+          meta +
+          '<div class="chat-bubble">' +
+            '<div class="chat-bubble-body">' + esc(message.body) + '</div>' +
+          '</div>' +
+          '<div class="chat-bubble-time">' + formatTime(message.created_at) + '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function dayDividerHtml(value) {
+    return '<div class="chat-day-divider"><span>' + esc(formatDay(value)) + '</span></div>';
+  }
+
+  function injectStyleOnce() {
+    if (document.getElementById('pm-bugchat-style')) return;
+    const style = document.createElement('style');
+    style.id = 'pm-bugchat-style';
+    style.textContent = `
+      .pm-bugchat-overlay { position:fixed; inset:0; z-index:1200; display:flex; align-items:center; justify-content:center;
+        background:rgba(10,10,14,0.45); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+        opacity:0; transition:opacity .18s ease; padding:16px; }
+      .pm-bugchat-overlay.open { opacity:1; }
+      .pm-bugchat-window { width:100%; max-width:480px; max-height:min(680px, 88vh); display:flex; flex-direction:column;
+        border-radius:22px; overflow:hidden; transform:translateY(14px) scale(0.98); transition:transform .18s ease;
+        box-shadow:0 24px 60px rgba(0,0,0,0.3); }
+      .pm-bugchat-overlay.open .pm-bugchat-window { transform:translateY(0) scale(1); }
+      html[data-theme="light"] .pm-bugchat-window, html:not([data-theme]) .pm-bugchat-window { background:#fff; }
+      html[data-theme="dark"] .pm-bugchat-window { background:#1c1d22; }
+
+      .pm-bugchat-header { display:flex; align-items:center; gap:10px; padding:16px 18px; flex-shrink:0;
+        background:linear-gradient(135deg, var(--accent, #2f6fed), #6d8ef2); color:#fff; }
+      .pm-bugchat-header-icon { width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.22);
+        display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+      .pm-bugchat-header-text { flex:1; min-width:0; }
+      .pm-bugchat-header-text b { display:block; font-size:0.98rem; }
+      .pm-bugchat-header-text span { display:block; font-size:0.76rem; opacity:0.85; margin-top:1px; }
+      .pm-bugchat-close { background:rgba(255,255,255,0.18); border:none; color:#fff; width:30px; height:30px; border-radius:50%;
+        font-size:1.05rem; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+        transition:background .15s ease; line-height:1; }
+      .pm-bugchat-close:hover { background:rgba(255,255,255,0.32); }
+
+      .pm-bugchat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:2px; }
+      html[data-theme="light"] .pm-bugchat-messages, html:not([data-theme]) .pm-bugchat-messages { background:#f4f5f7; }
+      html[data-theme="dark"] .pm-bugchat-messages { background:#141518; }
+
+      .chat-day-divider { text-align:center; margin:14px 0 10px; }
+      .chat-day-divider span { font-size:0.72rem; opacity:0.55; padding:3px 10px; border-radius:999px; background:rgba(127,127,127,0.14); }
+
+      .chat-bubble-row { display:flex; margin-bottom:4px; animation: pmChatIn .16s ease; }
+      .chat-bubble-row.is-mine { justify-content:flex-end; }
+      .chat-bubble-stack { max-width:78%; display:flex; flex-direction:column; }
+      .chat-bubble-row.is-mine .chat-bubble-stack { align-items:flex-end; }
+      .chat-bubble-meta { font-size:0.7rem; font-weight:600; opacity:0.55; margin:0 4px 2px; }
+      .chat-bubble { padding:9px 13px; border-radius:16px; word-wrap:break-word; }
+      html[data-theme="light"] .chat-bubble, html:not([data-theme]) .chat-bubble { background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.06); border-bottom-left-radius:5px; }
+      html[data-theme="dark"] .chat-bubble { background:#26272d; border-bottom-left-radius:5px; }
+      .chat-bubble-row.is-mine .chat-bubble { background:var(--accent, #2f6fed); color:#fff; border-bottom-left-radius:16px; border-bottom-right-radius:5px; }
+      .chat-bubble-body { font-size:0.92rem; line-height:1.4; white-space:pre-wrap; }
+      .chat-bubble-time { font-size:0.66rem; opacity:0.45; margin:2px 6px 0; }
+
+      .pm-bugchat-empty { text-align:center; opacity:0.55; padding:40px 20px; font-size:0.88rem; }
+      .pm-bugchat-empty .pm-bugchat-empty-icon { font-size:1.8rem; display:block; margin-bottom:8px; }
+
+      .pm-bugchat-form { display:flex; align-items:flex-end; gap:8px; padding:12px 14px; flex-shrink:0; }
+      html[data-theme="light"] .pm-bugchat-form, html:not([data-theme]) .pm-bugchat-form { background:#fff; border-top:1px solid rgba(0,0,0,0.06); }
+      html[data-theme="dark"] .pm-bugchat-form { background:#1c1d22; border-top:1px solid rgba(255,255,255,0.08); }
+      .pm-bugchat-form textarea { flex:1; resize:none; max-height:110px; padding:11px 16px; border-radius:20px; border:1px solid var(--line, rgba(127,127,127,0.3));
+        font-family:var(--font-body); font-size:0.92rem; line-height:1.35; }
+      .pm-bugchat-form textarea:focus { outline:none; border-color:var(--accent, #2f6fed); }
+      .pm-bugchat-send { width:40px; height:40px; border-radius:50%; border:none; background:var(--accent, #2f6fed); color:#fff;
+        font-size:1.05rem; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:transform .1s ease, opacity .15s ease; }
+      .pm-bugchat-send:hover { transform:scale(1.06); }
+      .pm-bugchat-send:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+      @keyframes pmChatIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+      @media (max-width:480px) {
+        .pm-bugchat-overlay { padding:0; align-items:flex-end; }
+        .pm-bugchat-window { max-width:none; max-height:92vh; border-radius:20px 20px 0 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  async function loadMessages(reportId) {
+    const { data, error } = await PM_DB.functions.invoke('list-bug-report-messages', { body: { reportId } });
+    if (error || !data || data.error) return [];
+    return data.messages || [];
+  }
+
+  async function renderMessages(container, reportId, user, force) {
+    const messages = await loadMessages(reportId);
+    if (!force && messages.length === lastRenderedCount) return; // evita di ridisegnare/scattare se non ci sono novità
+    lastRenderedCount = messages.length;
+
+    if (!messages.length) {
+      container.innerHTML = '<div class="pm-bugchat-empty"><span class="pm-bugchat-empty-icon">💬</span>Nessun messaggio ancora.<br>Scrivi il primo qui sotto.</div>';
+      return;
+    }
+
+    let html = '';
+    let lastDay = null;
+    let lastSender = null;
+    messages.forEach((m) => {
+      const day = new Date(m.created_at).toDateString();
+      if (day !== lastDay) { html += dayDividerHtml(m.created_at); lastDay = day; lastSender = null; }
+      const isMine = m.sender_id === user.id;
+      const showMeta = !isMine && m.sender_id !== lastSender;
+      html += bubbleHtml(m, isMine, showMeta);
+      lastSender = m.sender_id;
+    });
+    container.innerHTML = html;
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 110) + 'px';
+  }
+
+  async function pmOpenBugReportChat(reportId) {
+    const user = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null;
+    if (!user) return;
+    injectStyleOnce();
+    currentReservationId = reportId;
+    lastRenderedCount = -1;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'pm-bugchat-overlay';
+    overlay.innerHTML =
+      '<div class="pm-bugchat-window">' +
+        '<div class="pm-bugchat-header">' +
+          '<div class="pm-bugchat-header-icon">💬</div>' +
+          '<div class="pm-bugchat-header-text"><b>Chat ticket</b><span>I messaggi arrivano anche su Telegram</span></div>' +
+          '<button class="pm-bugchat-close" type="button" aria-label="Chiudi">×</button>' +
+        '</div>' +
+        '<div class="pm-bugchat-messages" id="pm-bugchat-messages"></div>' +
+        '<form class="pm-bugchat-form" id="pm-bugchat-form">' +
+          '<textarea id="pm-bugchat-input" rows="1" placeholder="Scrivi un messaggio..." maxlength="2000" required></textarea>' +
+          '<button type="submit" class="pm-bugchat-send" aria-label="Invia">➤</button>' +
+        '</form>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('open'));
+
+    const messagesBox = overlay.querySelector('#pm-bugchat-messages');
+    const form = overlay.querySelector('#pm-bugchat-form');
+    const input = overlay.querySelector('#pm-bugchat-input');
+    const sendBtn = overlay.querySelector('.pm-bugchat-send');
+
+    function close() {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      currentReservationId = null;
+      overlay.classList.remove('open');
+      setTimeout(() => overlay.remove(), 180);
+    }
+    overlay.querySelector('.pm-bugchat-close').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', function escHandler(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); } });
+
+    input.addEventListener('input', () => autoResize(input));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      sendBtn.disabled = true;
+      const { data, error } = await PM_DB.functions.invoke('send-bug-report-message', { body: { reportId, body: text } });
+      sendBtn.disabled = false;
+      let serverMessage = null;
+      if (error && error.context && typeof error.context.json === 'function') {
+        try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
+      }
+      if (error || !data || data.error) {
+        if (typeof pmToast === 'function') pmToast(serverMessage || (data && data.error) || 'Errore nell\'invio del messaggio.', 'error');
+        return;
+      }
+      input.value = '';
+      autoResize(input);
+      renderMessages(messagesBox, reportId, user, true);
+    });
+
+    await renderMessages(messagesBox, reportId, user, true);
+    input.focus();
+
+    // Aggiornamento semplice: ricontrolla nuovi messaggi ogni 4 secondi
+    // mentre il popup è aperto (niente sottoscrizioni realtime, per restare
+    // semplice); ridisegna solo se il numero di messaggi è cambiato, così
+    // non "salta" mentre stai leggendo o scrivendo.
+    pollTimer = setInterval(() => {
+      if (currentReservationId === reportId) renderMessages(messagesBox, reportId, user, false);
+    }, 4000);
+  }
+
+  window.pmOpenBugReportChat = pmOpenBugReportChat;
+})();
