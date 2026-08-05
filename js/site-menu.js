@@ -34,13 +34,12 @@ function pmInjectSiteMenuStyle() {
     html[data-theme="light"] .site-brand-float, html:not([data-theme]) .site-brand-float, html[data-theme="light"] .site-brand-float span, html:not([data-theme]) .site-brand-float span { color:#1c1c22 !important; }
     html[data-theme="dark"] .site-brand-float, html[data-theme="dark"] .site-brand-float span { color:#f2f2f5 !important; }
 
-    .site-bugreport-float { display:flex; align-items:center; justify-content:center; gap:6px; width:46px; height:46px; border-radius:50%; text-decoration:none;
-      font-size:1.15rem; flex-shrink:0;
+    .site-bugreport-float { position:static !important; display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px; text-decoration:none;
+      font-weight:600; font-family:var(--font-body); font-size:0.85rem; white-space:nowrap; flex-shrink:0;
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); transition:transform .15s ease; }
-    .site-bugreport-float:hover { transform:scale(1.06); }
-    .site-bugreport-float .bugreport-text { display:none; }
-    html[data-theme="light"] .site-bugreport-float, html:not([data-theme]) .site-bugreport-float { background:rgba(255,255,255,0.75); box-shadow:0 4px 16px rgba(20,20,30,0.14); border:1px solid rgba(0,0,0,0.06); }
-    html[data-theme="dark"] .site-bugreport-float { background:rgba(40,42,48,0.75); box-shadow:0 4px 16px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); }
+    .site-bugreport-float:hover { transform:translateY(-1px); }
+    html[data-theme="light"] .site-bugreport-float, html:not([data-theme]) .site-bugreport-float { background:rgba(255,255,255,0.75); box-shadow:0 4px 16px rgba(20,20,30,0.14); border:1px solid rgba(0,0,0,0.06); color:#1c1c22 !important; }
+    html[data-theme="dark"] .site-bugreport-float { background:rgba(40,42,48,0.75); box-shadow:0 4px 16px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); color:#f2f2f5 !important; }
 
     @media (max-width: 560px) {
       .site-brand-float { padding:8px; }
@@ -128,7 +127,7 @@ function pmBuildSiteMenuShell(){
   topLeft.appendChild(brand);
 
   const bugLink=document.createElement("a"); bugLink.className="site-bugreport-float"; bugLink.href="segnalazioni.html";
-  bugLink.innerHTML='🐞 <span class="bugreport-text">Segnalazioni Bug</span>';
+  bugLink.innerHTML='<span class="bugreport-text">Segnalazioni Bug</span>';
   topLeft.appendChild(bugLink);
 
   const toggle=document.createElement("button"); toggle.id="site-menu-toggle";toggle.className="site-menu-toggle";toggle.setAttribute("aria-label","Apri menu");toggle.setAttribute("aria-expanded","false");toggle.innerHTML="<span></span><span></span><span></span>";document.body.appendChild(toggle);
