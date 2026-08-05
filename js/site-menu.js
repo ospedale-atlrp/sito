@@ -17,6 +17,11 @@ function pmInjectSiteMenuStyle() {
   const style = document.createElement("style");
   style.id = "pm-site-menu-style";
   style.textContent = `
+    /* Contorni più visibili in tema chiaro: --line è la variabile che il
+       resto del sito già usa per i bordi (campi, select, ecc.), qui la
+       rinforziamo solo per il tema chiaro dove risultava troppo debole. */
+    html[data-theme="light"], html:not([data-theme]) { --line: rgba(40,40,50,0.38); }
+
     .site-topleft-float { position:fixed; top:18px; left:18px; z-index:998; display:flex; align-items:center; gap:10px; }
 
     .site-brand-float { display:flex; align-items:center; gap:10px;
@@ -29,18 +34,17 @@ function pmInjectSiteMenuStyle() {
     html[data-theme="light"] .site-brand-float, html:not([data-theme]) .site-brand-float, html[data-theme="light"] .site-brand-float span, html:not([data-theme]) .site-brand-float span { color:#1c1c22 !important; }
     html[data-theme="dark"] .site-brand-float, html[data-theme="dark"] .site-brand-float span { color:#f2f2f5 !important; }
 
-    .site-bugreport-float { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:999px; text-decoration:none;
-      font-weight:600; font-family:var(--font-body); font-size:0.85rem; white-space:nowrap;
+    .site-bugreport-float { display:flex; align-items:center; justify-content:center; gap:6px; width:46px; height:46px; border-radius:50%; text-decoration:none;
+      font-size:1.15rem; flex-shrink:0;
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); transition:transform .15s ease; }
-    .site-bugreport-float:hover { transform:translateY(-1px); }
-    html[data-theme="light"] .site-bugreport-float, html:not([data-theme]) .site-bugreport-float { background:rgba(255,255,255,0.75); box-shadow:0 4px 16px rgba(20,20,30,0.14); border:1px solid rgba(0,0,0,0.06); color:#1c1c22 !important; }
-    html[data-theme="dark"] .site-bugreport-float { background:rgba(40,42,48,0.75); box-shadow:0 4px 16px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); color:#f2f2f5 !important; }
+    .site-bugreport-float:hover { transform:scale(1.06); }
+    .site-bugreport-float .bugreport-text { display:none; }
+    html[data-theme="light"] .site-bugreport-float, html:not([data-theme]) .site-bugreport-float { background:rgba(255,255,255,0.75); box-shadow:0 4px 16px rgba(20,20,30,0.14); border:1px solid rgba(0,0,0,0.06); }
+    html[data-theme="dark"] .site-bugreport-float { background:rgba(40,42,48,0.75); box-shadow:0 4px 16px rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); }
 
     @media (max-width: 560px) {
       .site-brand-float { padding:8px; }
       .site-brand-float .brand-text { display:none; }
-      .site-bugreport-float .bugreport-text { display:none; }
-      .site-bugreport-float { padding:8px; }
     }
 
     .site-menu-toggle { position:fixed; top:18px; right:18px; z-index:1001; width:46px; height:46px; border-radius:50%; border:none; cursor:pointer;
