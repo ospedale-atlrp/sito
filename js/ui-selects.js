@@ -38,7 +38,7 @@
       /* Il pannello è fisso rispetto alla finestra, non al contenitore: così
          non viene mai tagliato da uno scroll interno (tabelle, card...) e
          resta sempre sopra a tutto il resto. */
-      .pm-select-panel { position:fixed; z-index:2000; max-height:260px; overflow-y:auto;
+      .pm-select-panel { position:fixed; z-index:2000; max-height:260px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
         border-radius:14px; padding:6px; opacity:0; transform:translateY(-6px) scale(0.98); pointer-events:none;
         transition:opacity .13s ease, transform .13s ease; }
       .pm-select-panel.open { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
@@ -149,6 +149,21 @@
     select.addEventListener('pm-select-refresh', () => syncTrigger(select, trigger));
     const form = select.closest('form');
     if (form) form.addEventListener('reset', () => setTimeout(() => syncTrigger(select, trigger), 0));
+
+    // Bug: cliccare la <label for="..."> collegata al select attiva
+    // comunque il menu NATIVO del browser, anche se il select è nascosto
+    // con pointer-events:none — l'attivazione via label bypassa quello.
+    // Intercettiamo il click sulla label e blocchiamo l'attivazione
+    // predefinita (preventDefault), aprendo invece il nostro menu custom.
+    if (select.id) {
+      const label = document.querySelector('label[for="' + select.id + '"]');
+      if (label) {
+        label.addEventListener('click', (e) => {
+          e.preventDefault();
+          trigger.click();
+        });
+      }
+    }
   }
 
   // Chiusura globale: click fuori, Esc, scroll (anche dentro contenitori
@@ -159,7 +174,10 @@
     closeOpen();
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOpen(); });
-  window.addEventListener('scroll', () => closeOpen(), true);
+  window.addEventListener('scroll', (e) => {
+    if (openState && openState.panel.contains(e.target)) return; // scroll interno al menu: non chiudere
+    closeOpen();
+  }, true);
   window.addEventListener('resize', () => closeOpen());
 
   function pmEnhanceSelects(root) {
