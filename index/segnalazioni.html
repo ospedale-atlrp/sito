@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Segnalazioni — Policlinico Nazionale Montessori</title>
 <link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" type="image/png" href="../img/logo_ospedale.png" />
 <script>(function(){var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>
@@ -51,7 +52,7 @@
 
     </div>
 
-    <p class="form-note" style="margin-top:24px;"><a href="dashboard.html">← Torna alla dashboard</a></p>
+    <p class="form-note" style="margin-top:24px;" id="bug-back-link"></p>
 
   </div>
 </div>
@@ -74,6 +75,16 @@
     if (!user) { window.location.href = 'login.html'; return; }
     if (typeof pmInitBugReportsPage === 'function') pmInitBugReportsPage(user);
     if (typeof pmRenderSiteMenu === 'function') pmRenderSiteMenu();
+
+    // "Torna alla Dashboard" se sei arrivato da lì, altrimenti "Torna alla
+    // Home" (es. sei arrivato dalla homepage tramite il bottone in alto).
+    const backLink = document.getElementById('bug-back-link');
+    if (backLink) {
+      const cameFromDashboard = /dashboard\.html(\?|#|$)/.test(document.referrer);
+      backLink.innerHTML = cameFromDashboard
+        ? '<a href="dashboard.html">← Torna alla Dashboard</a>'
+        : '<a href="../index.html">← Torna alla Home</a>';
+    }
   });
 </script>
 </body>
