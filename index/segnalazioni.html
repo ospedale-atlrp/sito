@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Segnalazioni — Policlinico Nazionale Montessori</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" type="image/png" href="../img/logo_ospedale.png" />
+<script>(function(){var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="auth-card" style="max-width:640px;">
+
+    <img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" class="brand-mark" />
+    <h1>Segnalazioni</h1>
+    <p class="auth-subtitle">Segnala un problema del sito o proponi una modifica. Il team ti risponde qui e su Telegram.</p>
+
+    <div id="bug-segment-bar" style="margin-top:28px;"></div>
+    <div id="bug-segment-panels">
+
+      <div class="pm-segment-panel" data-seg-panel="nuova" data-seg-label="Segnalazioni">
+        <h2>Nuova segnalazione</h2>
+        <div style="margin-top:20px;">
+          <div class="form-error" id="bug-form-error"></div>
+          <div class="form-success" id="bug-form-success"></div>
+          <form id="bug-report-form">
+            <div class="field">
+              <label for="bug-type">Tipo</label>
+              <select id="bug-type" name="type" required>
+                <option value="" disabled selected>Seleziona</option>
+                <option value="bug">Segnalazione bug</option>
+                <option value="modifica">Richiesta di modifica</option>
+              </select>
+            </div>
+            <div class="field"><label for="bug-title">Titolo</label><input type="text" id="bug-title" name="title" required maxlength="200" placeholder="Riassumi in poche parole" /></div>
+            <div class="field">
+              <label for="bug-description">Descrizione</label>
+              <textarea id="bug-description" name="description" required maxlength="3000" rows="5" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; resize:vertical; background:var(--white); color:var(--ink);" placeholder="Descrivi il problema o la modifica che vorresti"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Invia segnalazione</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="pm-segment-panel" data-seg-panel="ticket" data-seg-label="Ticket creati">
+        <h2>I tuoi ticket</h2>
+        <p class="form-note">Stato delle segnalazioni che hai inviato.</p>
+        <div class="reservations-list" id="my-bug-reports-list" style="margin-top:16px;"></div>
+      </div>
+
+    </div>
+
+    <p class="form-note" style="margin-top:24px;" id="bug-back-link"></p>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/main.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/ui-dialogs.js"></script>
+<script src="../js/ui-tabs.js"></script>
+<script src="../js/ui-selects.js"></script>
+<script src="../js/site-menu.js?v=2"></script>
+<script src="../js/bug-reports.js"></script>
+<script src="../js/bug-report-chat.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', async function () {
+    const user = await pmLoadCurrentUser();
+    if (!user) { window.location.href = 'login.html'; return; }
+    if (typeof pmInitBugReportsPage === 'function') pmInitBugReportsPage(user);
+    if (typeof pmRenderSiteMenu === 'function') pmRenderSiteMenu();
+
+    // "Torna alla Dashboard" se sei arrivato da lì, altrimenti "Torna alla
+    // Home" (es. sei arrivato dalla homepage tramite il bottone in alto).
+    const backLink = document.getElementById('bug-back-link');
+    if (backLink) {
+      const cameFromDashboard = /dashboard\.html(\?|#|$)/.test(document.referrer);
+      backLink.innerHTML = cameFromDashboard
+        ? '<a href="dashboard.html">← Torna alla Dashboard</a>'
+        : '<a href="../index.html">← Torna alla Home</a>';
+    }
+  });
+</script>
+</body>
+</html>
