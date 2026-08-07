@@ -81,7 +81,9 @@ function pmInjectSiteMenuStyle() {
     .site-menu-account-head .account-avatar img { width:34px; height:34px; border-radius:50%; object-fit:cover; }
     .site-menu-account-head .account-name { font-weight:700; font-size:0.92rem; }
     .site-menu-account-head .account-status { font-size:0.76rem; opacity:0.65; }
-    .site-menu-item { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:8px 10px; border-radius:10px; border:none; background:transparent; cursor:pointer; font-family:var(--font-body); font-size:0.86rem; text-decoration:none; transition:background .15s ease; }
+    .site-menu-item { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:9px 10px; border-radius:10px; border:none; background:transparent; cursor:pointer; font-family:var(--font-body); font-size:0.86rem; line-height:1.1; text-decoration:none; transition:background .15s ease; }
+    .site-menu-item + .site-menu-item { margin-top:3px; }
+    .site-menu-item > *:first-child { display:inline-flex; align-items:center; }
     .site-menu-item:hover { background:rgba(127,127,127,0.14); }
     .site-menu-item.active { font-weight:700; background:rgba(127,127,127,0.12); }
     .notification-menu-button { justify-content:space-between; margin-top:6px; }
