@@ -6,14 +6,15 @@ const PM_THEME_KEY = "pm_theme";
    Corrisponde 1:1 a I18N.SUPPORTED in i18n.js — se si aggiunge una lingua
    lì, va aggiunta anche qui. */
 const PM_LANGS = [
-  { code: "it", short: "ITA", label: "Italiano" },
-  { code: "en", short: "ENG", label: "English" },
-  { code: "es", short: "ESP", label: "Español" },
-  { code: "de", short: "DEU", label: "Deutsch" },
-  { code: "fr", short: "FRA", label: "Français" },
-  { code: "pt", short: "POR", label: "Português" },
-  { code: "ru", short: "RUS", label: "Русский" },
-  { code: "zh", short: "CHI", label: "中文" },
+  { code: "it", short: "ITA", label: "Italiano", flag: "🇮🇹" },
+  { code: "en", short: "ENG", label: "English", flag: "🇬🇧" },
+  { code: "es", short: "ESP", label: "Español", flag: "🇪🇸" },
+  { code: "de", short: "DEU", label: "Deutsch", flag: "🇩🇪" },
+  { code: "fr", short: "FRA", label: "Français", flag: "🇫🇷" },
+  { code: "pt", short: "POR", label: "Português", flag: "🇵🇹" },
+  { code: "ru", short: "RUS", label: "Русский", flag: "🇷🇺" },
+  { code: "zh", short: "CHI", label: "中文", flag: "🇨🇳" },
+  { code: "ja", short: "JPN", label: "日本語", flag: "🇯🇵" },
 ];
 
 function pmThemePreference() { return localStorage.getItem(PM_THEME_KEY) || "system"; }
@@ -121,6 +122,11 @@ function pmInjectSiteMenuStyle() {
     html[data-theme="light"] .notification-item, html:not([data-theme]) .notification-item { background:rgba(0,0,0,0.045); }
     html[data-theme="dark"] .notification-item { background:rgba(255,255,255,0.07); }
     .notification-item b { display:block; margin-bottom:1px; }
+    .lang-flag { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%;
+      overflow:hidden; margin-right:8px; font-size:0.8rem; line-height:1; flex-shrink:0; border:1px solid; }
+    html[data-theme="light"] .lang-flag, html:not([data-theme]) .lang-flag { border-color:rgba(40,40,50,0.35); }
+    html[data-theme="dark"] .lang-flag { border-color:rgba(255,255,255,0.28); }
+
     .site-menu-langs-full, .theme-choices { display:flex; gap:5px; flex-wrap:wrap; }
     .site-menu-langs-full button, .theme-choices button { flex:1; min-width:78px; padding:7px 6px; border-radius:10px; border:1px solid transparent; background:rgba(127,127,127,0.1); cursor:pointer; font-family:var(--font-body); font-size:0.78rem; display:flex; flex-direction:column; align-items:center; gap:2px; transition:all .15s ease; }
     .site-menu-langs-full button.active, .theme-choices button.active { border-color:rgba(127,127,127,0.35); font-weight:700; }
@@ -233,7 +239,7 @@ async function pmRenderSiteMenu(){
     unread = visibleNotices.filter(function (n) { const st = statusMap[n.id]; return !st || !st.seen_at; }).length;
   }
   if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata",PM_ICONS.dashboard)+pmMenuItem("segnalazioni.html","Segnalazioni",PM_ICONS.bug)+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>'+PM_ICONS.bell+' Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">'+PM_ICONS.logout+' Esci</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ Accedi con Telegram</a></div>';}
-  html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' Lingua ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'">'+l.label+'</button>';}).join('')+'</div></div>';
+  html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' Lingua ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+l.flag+'</span>'+l.label+'</button>';}).join('')+'</div></div>';
   html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">'+PM_ICONS.sun+'<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">'+PM_ICONS.moon+'<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">'+PM_ICONS.device+'<span>Dispositivo</span></button></div></div>';
   panel.innerHTML=html;
   panel.querySelectorAll('a[href="index.html"]').forEach(function(link){link.href="../index.html";});
