@@ -1,6 +1,21 @@
 /* Menu globale: lingua, aspetto, notifiche e accesso. */
 const PM_THEME_KEY = "pm_theme";
 
+/* Le 8 lingue del menu: "short" è quello che compare nel bottone chiuso
+   (es. "Lingua (ITA)"), "label" è il nome per esteso nell'elenco a tendina.
+   Corrisponde 1:1 a I18N.SUPPORTED in i18n.js — se si aggiunge una lingua
+   lì, va aggiunta anche qui. */
+const PM_LANGS = [
+  { code: "it", short: "ITA", label: "Italiano" },
+  { code: "en", short: "ENG", label: "English" },
+  { code: "es", short: "ESP", label: "Español" },
+  { code: "de", short: "DEU", label: "Deutsch" },
+  { code: "fr", short: "FRA", label: "Français" },
+  { code: "pt", short: "POR", label: "Português" },
+  { code: "ru", short: "RUS", label: "Русский" },
+  { code: "zh", short: "CHI", label: "中文" },
+];
+
 function pmThemePreference() { return localStorage.getItem(PM_THEME_KEY) || "system"; }
 function pmGetTheme() { const pref=pmThemePreference(); return pref === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : pref; }
 function pmApplyTheme(theme) { document.documentElement.setAttribute("data-theme", theme || pmGetTheme()); }
@@ -217,9 +232,9 @@ async function pmRenderSiteMenu(){
     });
     unread = visibleNotices.filter(function (n) { const st = statusMap[n.id]; return !st || !st.seen_at; }).length;
   }
-  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata","▣")+pmMenuItem("segnalazioni.html","Segnalazioni","🐞")+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>🔔 Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">▾</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">↪ Esci</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ Accedi con Telegram</a></div>';}
-  html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><div class="site-menu-langs site-menu-langs-full"><button data-lang="it" class="'+(lang==="it"?"active":"")+'">IT · Italiano</button><button data-lang="es" class="'+(lang==="es"?"active":"")+'">ESP · Spagnolo</button><button data-lang="en" class="'+(lang==="en"?"active":"")+'">ENG · Inglese</button></div></div>';
-  html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">☼<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">☾<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">▣<span>Dispositivo</span></button></div></div>';
+  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata",PM_ICONS.dashboard)+pmMenuItem("segnalazioni.html","Segnalazioni",PM_ICONS.bug)+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>'+PM_ICONS.bell+' Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">'+PM_ICONS.logout+' Esci</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ Accedi con Telegram</a></div>';}
+  html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' Lingua ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'">'+l.label+'</button>';}).join('')+'</div></div>';
+  html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">'+PM_ICONS.sun+'<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">'+PM_ICONS.moon+'<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">'+PM_ICONS.device+'<span>Dispositivo</span></button></div></div>';
   panel.innerHTML=html;
   panel.querySelectorAll('a[href="index.html"]').forEach(function(link){link.href="../index.html";});
   const log=document.getElementById("site-menu-logout");if(log)log.addEventListener("click",function(e){e.preventDefault();pmLogout();});
@@ -244,6 +259,12 @@ async function pmRenderSiteMenu(){
       const countEl=noticesBtn.querySelector(".menu-notice-count");
       if(countEl){countEl.textContent="0";countEl.classList.add("is-zero");}
     }
+  });
+  const langBtn=document.getElementById("site-menu-lang-btn"),langList=document.getElementById("site-menu-lang-list");
+  if(langBtn&&langList)langBtn.addEventListener("click",function(){
+    const willOpen=!langList.classList.contains("open");
+    langList.classList.toggle("open",willOpen);
+    langBtn.setAttribute("aria-expanded",String(willOpen));
   });
 }
 function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><button type="button" class="notice-delete" data-id="'+n.id+'" aria-label="Elimina avviso">×</button><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">Nessun avviso.</div>';}
