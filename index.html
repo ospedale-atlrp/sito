@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<base href="index/" />
+<title>Policlinico Nazionale Montessori — Liberty Bay RP</title>
+<meta name="description" content="Policlinico Nazionale Montessori, l'ospedale ufficiale del server Minecraft Liberty Bay RP." />
+<link rel="stylesheet" href="../css/style.css?v=20260714-2" />
+<link rel="icon" type="image/png" href="../img/logo_ospedale.png" />
+<script>(function(){var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-media">
+    <img src="../img/ospedale.png" alt="Facciata del Policlinico Nazionale Montessori" />
+  </div>
+  <div class="hero-content container">
+    <div class="hero-panel">
+      <h1 data-i18n="hero.title">Policlinico Nazionale Montessori</h1>
+      <p class="hero-subtitle" data-i18n="hero.subtitle">Il presidio ospedaliero di riferimento della cittadinanza di Liberty Bay.</p>
+      <div class="hero-cta-groups">
+        <div class="hero-cta-group hero-cta-group-patient">
+          <span class="hero-cta-label">Prenota visite, certificati e vaccini, o accedi all'area riservata dello staff</span>
+          <a href="login.html" class="btn btn-telegram">✈ Accedi con Telegram</a>
+        </div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><b>4</b><span data-i18n="hero.stat.reparti">Reparti attivi</span></div>
+        <div class="hero-stat"><b>15</b><span data-i18n="hero.stat.personale">Ruoli in organico</span></div>
+        <div class="hero-stat"><b>24/7</b><span data-i18n="hero.stat.h24">Assistenza</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div id="ecg-slot"></div>
+
+<section class="about">
+  <div class="container about-block reveal">
+    <div>
+      <h2 style="margin-top:14px;" data-i18n="about.title">Un ospedale al servizio delle Isole Canarie</h2>
+      <p style="margin-top:16px;" data-i18n="about.text">Il Policlinico Nazionale Montessori nasce per offrire ai cittadini di Liberty Bay un punto di riferimento: si possono effettuare Operazioni Chirurgiche, Certificati Medici, Vaccini e molto altro.</p>
+    </div>
+  </div>
+</section>
+
+<section class="team-photo">
+  <div class="container reveal">
+    <h2 class="team-photo-title">Il nostro Team Ospedaliero</h2>
+    <div class="team-photo-frame team-photo-frame-large">
+      <img src="../img/foto_gruppo1.png" alt="Foto di gruppo dello staff del Policlinico Nazionale Montessori"
+        onerror="this.parentElement.classList.add('img-missing'); this.remove();" />
+      <div class="img-missing-note">
+        ⚠️ Immagine non trovata.<br />Verifica che <code>foto_gruppo1.png</code> sia dentro la cartella <code>img</code>, allo stesso livello di <code>css</code> e <code>js</code>, e che il nome del file corrisponda esattamente (maiuscole/minuscole comprese).
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container footer-inner">
+    <span class="footer-text" data-i18n="footer.text">Policlinico Nazionale Montessori — Liberty Bay RP.</span>
+    <div class="footer-copy">© OspedaleLibertyBay - Tutti i contenuti sono gestiti da copyright per fini illustrativi e lavorativi</div>
+  </div>
+</footer>
+
+<script src="../js/api.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/icons.js?v=2"></script>
+<script src="../js/supabase-config.js?v=2"></script>
+<script src="../js/supabase-client.js?v=2"></script>
+<script src="../js/i18n.js?v=20260714-2"></script>
+<script src="../js/main.js?v=2"></script>
+<script src="../js/auth.js?v=2"></script>
+<script src="../js/site-menu.js?v=2"></script>
+<script>
+  document.getElementById("ecg-slot").innerHTML = renderEcgDivider();
+  document.querySelectorAll(".team-photo .section-head").forEach(function (el) { el.remove(); });
+</script>
+</body>
+</html>
