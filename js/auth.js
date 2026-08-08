@@ -59,7 +59,8 @@ function pmWireAllModalitaToggles(root) {
 function pmUpdateHomeCta(user) {
   const link = document.getElementById('home-cta-link');
   if (!link) return;
-  if (user) { link.href = 'dashboard.html'; link.innerHTML = '▣ Vai alla dashboard'; link.style.background = '#1f5c8b'; }
+  const dashIcon = (typeof PM_ICONS !== 'undefined' && PM_ICONS.dashboard) ? PM_ICONS.dashboard : '▣';
+  if (user) { link.href = 'dashboard.html'; link.innerHTML = dashIcon + ' Vai alla dashboard'; link.style.background = '#1f5c8b'; }
   else { link.href = 'login.html'; link.innerHTML = '✈ Accedi con Telegram'; link.style.background = ''; }
 }
 
@@ -127,9 +128,20 @@ document.addEventListener('DOMContentLoaded', function () {
   if (document.getElementById('dash-username')) {
     pmInitDashboard();
   } else {
-    pmLoadCurrentUser().then(function (user) {
+    pmLoadCurrentUser().then(async function (user) {
       if (typeof pmRenderSiteMenu === 'function') pmRenderSiteMenu();
-      pmUpdateHomeCta(user);
+      if (user) { pmUpdateHomeCta(user); return; }
+      // pmLoadCurrentUser() può restituire null anche con una sessione
+      // valida, se il caricamento del profilo fallisce per un problema
+      // temporaneo (vedi il commento sopra). Prima di mostrare "Accedi",
+      // controlliamo la sessione direttamente: se esiste, mostriamo
+      // comunque "Vai alla dashboard" invece di far sembrare che l'accesso
+      // sia sparito.
+      if (window.PM_DB) {
+        const { data: sessionData } = await PM_DB.auth.getSession();
+        if (sessionData && sessionData.session) { pmUpdateHomeCta({}); return; }
+      }
+      pmUpdateHomeCta(null);
     });
   }
 });
