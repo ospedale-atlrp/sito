@@ -1,5 +1,5 @@
 const I18N = (() => {
-  const SUPPORTED = ["it", "en", "es", "de", "fr", "pt", "ru", "zh"];
+  const SUPPORTED = ["it", "en", "es", "de", "fr", "pt", "ru", "zh", "ja"];
   const STORAGE_KEY = "pnm_lang";
   let dict = {};
 
