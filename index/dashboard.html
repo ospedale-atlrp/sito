@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Area Riservata — Policlinico Nazionale Montessori</title>
+<link rel="stylesheet" href="../css/style.css" />
+<link rel="icon" type="image/png" href="../img/logo_ospedale.png" />
+<script>(function(){var t=localStorage.getItem('pm_theme')||'light';document.documentElement.setAttribute('data-theme',t);})();</script>
+</head>
+<body>
+
+<!-- Card di benvenuto: sempre in alto e centrata, per tutti i ruoli -->
+<div class="auth-shell">
+  <div class="auth-card" style="max-width:640px;">
+
+    <img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" class="brand-mark" />
+    <h1>Dashboard</h1>
+    <p class="auth-subtitle">
+      Bentornato/a,
+      <b id="dash-username"></b> —
+      <span id="dash-role"></span>
+    </p>
+
+    <!-- Per tutti gli altri ruoli (non Direzione): pagina normale -->
+    <div id="standard-panels">
+
+    <div id="staff-panels-wrapper">
+    <!-- Schede: si mostrano/nascondono via JS in base al ruolo (staff-segment-bar.js in auth.js) -->
+    <div id="staff-segment-bar" style="margin-top:28px;"></div>
+    <div id="staff-segment-panels">
+
+      <!-- Visibile a tutto il personale: qui si compila il modulo -->
+      <div id="reservation-forms-panel" class="pm-segment-panel" data-seg-panel="richieste" data-seg-label="Compila richiesta">
+        <h2>Modulo Ospedale</h2>
+        <p class="form-note">Compila il modulo e seleziona il servizio richiesto.</p>
+
+        <div style="margin-top:20px;">
+          <div class="form-error" id="hospital-form-error"></div>
+          <div class="form-success" id="hospital-form-success"></div>
+          <form id="hospital-form">
+            <div class="field" id="hospital-modalita-field">
+              <label>Tipo di prenotazione</label>
+              <div class="pm-segmented pm-modalita-toggle" id="hospital-modalita-toggle" style="margin-top:6px; margin-bottom:0;">
+                <button type="button" class="active" data-modalita-value="pazienti">Per i Pazienti</button>
+                <button type="button" data-modalita-value="me_stesso">Per Me</button>
+              </div>
+              <input type="radio" name="modalita" value="pazienti" checked style="position:absolute; opacity:0; width:0; height:0; pointer-events:none;" />
+              <input type="radio" name="modalita" value="me_stesso" style="position:absolute; opacity:0; width:0; height:0; pointer-events:none;" />
+            </div>
+            <div class="field">
+              <label for="hospital-tipo">Seleziona il servizio</label>
+              <select id="hospital-tipo" name="tipo" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                <option value="" disabled selected>Seleziona</option>
+                <option value="certificato_medico">Certificato Medico</option>
+                <option value="cambio_sesso">Cambio Sesso</option>
+              </select>
+              <p class="form-note" id="hospital-tipo-hint" style="margin-top:8px;"></p>
+            </div>
+            <div class="field" id="hospital-agonistico-field" style="display:none;">
+              <label for="hospital-agonistico">Certificato Agonistico</label>
+              <select id="hospital-agonistico" name="agonistico" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                <option value="" disabled selected>Seleziona</option>
+                <option value="si">Sì</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div class="field"><label for="hospital-nome">Nome</label><input type="text" id="hospital-nome" name="nome" required /></div>
+            <div class="field"><label for="hospital-cognome">Cognome</label><input type="text" id="hospital-cognome" name="cognome" required /></div>
+            <div class="field"><label for="hospital-cf">C.F. (nick)</label><input type="text" id="hospital-cf" name="cf" required placeholder="Nickname in-game" /></div>
+            <div class="field" id="hospital-tg-field"><label for="hospital-tg">Telegram del paziente</label><input type="text" id="hospital-tg" name="telegram" required placeholder="@usernameTelegram" /></div>
+            <div class="field">
+              <label for="hospital-sesso">Sesso</label>
+              <select id="hospital-sesso" name="sesso" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                <option value="" disabled selected>Seleziona</option>
+                <option value="M">M</option>
+                <option value="F">F</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Invia prenotazione</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Un'unica scheda "Prenotazioni": chi gestisce prenotazioni (Medico
+           di Base in su) vede l'isola interna con 2 pulsanti; chi non le
+           gestisce (Infermieri) ha un solo pannello, quindi l'isola
+           interna sparisce da sola (vedi ui-tabs.js) e va dritto a
+           "Le mie prenotazioni" senza che si veda nessuna scelta. -->
+      <div class="pm-segment-panel" data-seg-panel="prenotazioni" data-seg-label="Prenotazioni">
+        <div id="reservation-sub-bar" style="margin-bottom:20px;"></div>
+        <div id="reservation-sub-panels">
+
+          <div class="pm-segment-panel" data-seg-panel="mie" data-seg-label="Le mie prenotazioni">
+            <h2>Le mie prenotazioni</h2>
+            <p class="form-note">Stato delle prenotazioni fatte a tuo nome (anche se compilate da un collega per te).</p>
+            <div class="reservations-list" id="staff-my-reservations-list" style="margin-top:16px;"></div>
+          </div>
+
+          <div class="pm-segment-panel" data-seg-panel="pazienti" data-seg-label="Le prenotazioni dei pazienti">
+            <h2>Le prenotazioni dei pazienti</h2>
+            <p class="form-note">Prenotazioni indirizzate al tuo ruolo, in attesa o che segui tu.</p>
+            <div class="reservation-counters" id="reservation-counters"></div>
+            <div class="reservations-list" id="received-reservations-list" style="margin-top:16px;"></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Visibile a tutti, Direzione compresa -->
+      <div class="pm-segment-panel" data-seg-panel="profilo" data-seg-label="Il mio profilo">
+        <h2>Il mio profilo</h2>
+        <p class="form-note">Nickname: <b id="profile-username-display"></b></p>
+        <div style="margin-top:22px;">
+          <span class="eyebrow">Hai un codice promozione?</span>
+          <div class="form-error js-redeem-error" style="margin-top:8px;"></div>
+          <div class="form-success js-redeem-success"></div>
+          <form class="js-redeem-code-form" style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" name="code" placeholder="PM-XXXX-XXXX" style="flex:1; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);" />
+            <button type="submit" class="btn btn-outline btn-sm">Riscatta</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    </div><!-- /staff-panels-wrapper -->
+
+    <!-- Visibile solo ai pazienti (ruolo "Cittadino"): prenotazioni proprie -->
+    <div id="patient-panels-wrapper" style="display:none;">
+      <div id="patient-segment-bar" style="margin-top:28px;"></div>
+      <div id="patient-segment-panels">
+
+        <div class="pm-segment-panel" data-seg-panel="nuova" data-seg-label="Nuova prenotazione">
+          <h2>Prenota un servizio</h2>
+          <p class="form-note">Compila il modulo per richiedere un servizio del Policlinico.</p>
+          <div style="margin-top:20px;">
+            <div class="form-error" id="patient-form-error"></div>
+            <div class="form-success" id="patient-form-success"></div>
+            <form id="patient-reservation-form">
+              <div class="field">
+                <label for="patient-tipo">Seleziona il servizio</label>
+                <select id="patient-tipo" name="tipo" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                  <option value="" disabled selected>Seleziona</option>
+                  <option value="certificato_medico">Certificato Medico</option>
+                  <option value="cambio_sesso">Cambio Sesso</option>
+                </select>
+              </div>
+              <div class="field" id="patient-agonistico-field" style="display:none;">
+                <label for="patient-agonistico">Certificato Agonistico</label>
+                <select id="patient-agonistico" name="agonistico" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                  <option value="" disabled selected>Seleziona</option>
+                  <option value="si">Sì</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+              <div class="field"><label for="patient-nome">Nome</label><input type="text" id="patient-nome" name="nome" required /></div>
+              <div class="field"><label for="patient-cognome">Cognome</label><input type="text" id="patient-cognome" name="cognome" required /></div>
+              <div class="field"><label for="patient-cf">C.F. (nick)</label><input type="text" id="patient-cf" name="cf" required placeholder="Nickname in-game" /></div>
+              <div class="field">
+                <label for="patient-sesso">Sesso</label>
+                <select id="patient-sesso" name="sesso" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+                  <option value="" disabled selected>Seleziona</option>
+                  <option value="M">M</option>
+                  <option value="F">F</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Invia prenotazione</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="pm-segment-panel" data-seg-panel="mie" data-seg-label="Le mie prenotazioni">
+          <h2>Le mie prenotazioni</h2>
+          <p class="form-note">Stato delle richieste che hai inviato. Apri la chat una volta prese in carico.</p>
+          <div class="reservations-list" id="my-reservations-list" style="margin-top:16px;"></div>
+        </div>
+
+        <div class="pm-segment-panel" data-seg-panel="profilo-paziente" data-seg-label="Il mio profilo">
+          <h2>Il mio profilo</h2>
+          <p class="form-note">Nickname: <b id="patient-username-display"></b></p>
+          <div style="margin-top:22px;">
+            <span class="eyebrow">Hai un codice promozione?</span>
+            <div class="form-error js-redeem-error" style="margin-top:8px;"></div>
+            <div class="form-success js-redeem-success"></div>
+            <form class="js-redeem-code-form" style="display:flex; gap:8px; margin-top:8px;">
+              <input type="text" name="code" placeholder="PM-XXXX-XXXX" style="flex:1; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);" />
+              <button type="submit" class="btn btn-outline btn-sm">Riscatta</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Solo per Dirigente e Chirurgo Primario: riquadro largo, serve spazio per la tabella account -->
+<div class="container" id="direction-actions" style="display:none; margin-top:28px; padding-bottom:60px;">
+  <div id="direction-segment-bar"></div>
+  <div id="direction-segment-panels">
+
+    <div class="pm-segment-panel" data-seg-panel="account" data-seg-label="Gestione Account">
+      <div class="panel-card direction-accounts-panel">
+        <div class="section-title-row">
+          <div><span class="eyebrow">Direzione</span><h2>Gestione account</h2></div>
+          <p>Attiva, disattiva (es. depexato o dimissioni volontarie), promuovi o retrocedi gli account del personale.</p>
+        </div>
+        <div class="accounts-table-scroll">
+          <table class="accounts-table">
+            <thead>
+              <tr>
+                <th>Nick</th>
+                <th>Nome e Cognome</th>
+                <th>Ruolo</th>
+                <th>Stato</th>
+                <th>Azione</th>
+              </tr>
+            </thead>
+            <tbody id="accounts-tbody-modal"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="pm-segment-panel" data-seg-panel="codici" data-seg-label="Codici Promozione">
+      <div class="panel-card">
+        <div class="section-title-row">
+          <div><span class="eyebrow">Direzione</span><h2>Genera codice promozione</h2></div>
+          <p>Genera un codice monouso: chi lo inserisce nel proprio profilo ottiene il ruolo scelto. Puoi generare codici solo per ruoli sotto il tuo.</p>
+        </div>
+        <div class="form-error" id="promo-create-error"></div>
+        <div class="form-success" id="promo-create-success"></div>
+        <form id="promo-create-form" style="margin-top:16px;">
+          <div class="field">
+            <label for="promo-role">Ruolo da assegnare</label>
+            <select id="promo-role" name="role" required style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+              <option value="" disabled selected>Seleziona</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="promo-expires">Scadenza</label>
+            <select id="promo-expires" name="expiresInHours" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; background:var(--white); color:var(--ink);">
+              <option value="24">24 ore</option>
+              <option value="168">7 giorni</option>
+              <option value="">Nessuna scadenza</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Genera codice</button>
+        </form>
+        <div id="promo-generated" style="display:none; margin-top:18px; padding:14px; border-radius:10px; background:rgba(127,127,127,0.12);">
+          <span class="eyebrow">Codice generato</span>
+          <p style="font-family:monospace; font-size:1.3rem; margin-top:6px;" id="promo-generated-code"></p>
+          <p class="form-note" id="promo-generated-expiry"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visibile SOLO al super-admin (non a tutta la Direzione): gestione
+         dei ticket di segnalazione bug e richieste di modifica. -->
+    <div class="pm-segment-panel" data-seg-panel="segnalazioni" data-seg-label="Segnalazioni">
+      <div class="panel-card">
+        <span class="eyebrow">Amministrazione</span>
+        <h2>Segnalazioni</h2>
+        <div id="bug-admin-sub-bar" style="margin:16px 0 0;"></div>
+        <div id="bug-admin-sub-panels">
+          <div class="pm-segment-panel" data-seg-panel="bug" data-seg-label="Bug">
+            <div class="reservations-list" id="bug-admin-list-bug" style="margin-top:16px;"></div>
+          </div>
+          <div class="pm-segment-panel" data-seg-panel="modifiche" data-seg-label="Modifiche">
+            <div class="reservations-list" id="bug-admin-list-modifica" style="margin-top:16px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="../js/api.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/icons.js?v=2"></script>
+<script src="../js/supabase-config.js?v=2"></script>
+<script src="../js/supabase-client.js?v=2"></script>
+<script src="../js/ui-dialogs.js?v=2"></script>
+<script src="../js/ui-tabs.js?v=2"></script>
+<script src="../js/ui-selects.js?v=2"></script>
+<script src="../js/i18n.js?v=2"></script>
+<script src="../js/main.js?v=2"></script>
+<script src="../js/auth.js?v=2"></script>
+<script src="../js/site-menu.js?v=2"></script>
+<script src="../js/reservations.js?v=2"></script>
+<script src="../js/reservation-chat.js?v=2"></script>
+<script src="../js/promotion-codes.js?v=2"></script>
+<script src="../js/bug-report-chat.js?v=2"></script>
+<script src="../js/bug-reports-admin.js?v=2"></script>
+<script src="../js/staff-directory.js?v=2"></script>
+<script>
+  var PM_REQUEST_TYPES = {
+    cambio_sesso: {
+      roles: ["Chirurgo Specializzando", "Chirurgo Strutturato", "Chirurgo Vice Primario", "Chirurgo Primario", "Dirigente"],
+      success: "Prenotazione inviata al Chirurgo.",
+      hint: "La richiesta verrà inviata ai profili dei Chirurghi."
+    },
+    certificato_medico: {
+      roles: ["Medico di Base", "Medico di Laboratorio", "Medico Responsabile Ambulatorio", "Chirurgo Specializzando", "Chirurgo Strutturato", "Chirurgo Vice Primario", "Chirurgo Primario", "Dirigente"],
+      success: "Prenotazione inviata a Medico/Chirurgo.",
+      hint: "La richiesta verrà inviata ai profili dei Medici e dei Chirurghi."
+    }
+  };
+
+  function pmWireHospitalForm(suffix) {
+    var tipoSelect = document.getElementById("hospital-tipo" + suffix);
+    var tipoHint = document.getElementById("hospital-tipo-hint" + suffix);
+    if (!tipoSelect) return;
+
+    // Toggle "Prenotazione x Pazienti" / "x Me Stesso": solo nella prima
+    // modalità serve (ed è obbligatoria) la @ Telegram del paziente.
+    var tgField = document.getElementById("hospital-tg-field" + suffix);
+    var tgInput = document.getElementById("hospital-tg" + suffix);
+    var modalitaRadios = document.querySelectorAll('#hospital-form' + suffix + ' input[name="modalita"]');
+    function pmUpdateHospitalModalita() {
+      var checked = document.querySelector('#hospital-form' + suffix + ' input[name="modalita"]:checked');
+      var isPazienti = !checked || checked.value === "pazienti";
+      if (tgField && tgInput) {
+        tgField.style.display = isPazienti ? "" : "none";
+        tgInput.required = isPazienti;
+        if (!isPazienti) tgInput.value = "";
+      }
+    }
+    modalitaRadios.forEach(function (r) { r.addEventListener("change", pmUpdateHospitalModalita); });
+    pmUpdateHospitalModalita();
+    tipoSelect.addEventListener("change", function () {
+      var conf = PM_REQUEST_TYPES[tipoSelect.value];
+      tipoHint.textContent = conf ? conf.hint : "";
+      var agonField = document.getElementById("hospital-agonistico-field" + suffix);
+      var agonSelect = document.getElementById("hospital-agonistico" + suffix);
+      if (agonField && agonSelect) {
+        var isCertificato = tipoSelect.value === "certificato_medico";
+        agonField.style.display = isCertificato ? "" : "none";
+        agonSelect.required = isCertificato;
+        if (!isCertificato) { agonSelect.value = ""; if (typeof pmRefreshSelect === "function") pmRefreshSelect(agonSelect); }
+      }
+    });
+    var form = document.getElementById("hospital-form" + suffix);
+    if (form) {
+      form.addEventListener("submit", function (e) {
+        var conf = PM_REQUEST_TYPES[tipoSelect.value];
+        if (!conf) {
+          e.preventDefault();
+          var errorBox = document.getElementById("hospital-form-error" + suffix);
+          if (errorBox) { errorBox.textContent = "Seleziona il servizio."; errorBox.style.display = "block"; }
+          return;
+        }
+        pmHandleReservationSubmit(e, tipoSelect.value, conf.roles, conf.success, { error: "hospital-form-error" + suffix, success: "hospital-form-success" + suffix });
+
+        // Per gli infermieri: dopo l'invio, mostra quante prenotazioni hai compilato finora.
+        var user = pmCurrentUser();
+        if (user && user.role.indexOf("Infermiere") === 0) {
+          var counts = pmCountUserReservations(user.username);
+          var successBox = document.getElementById("hospital-form-success" + suffix);
+          if (successBox) {
+            successBox.textContent += " Hai compilato finora " + counts.cambio_sesso + " prenotazioni di Cambio Sesso e " + counts.certificato_medico + " di Certificato Medico.";
+          }
+        }
+      });
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    pmWireHospitalForm("");
+  });
+</script>
+</body>
+</html>
