@@ -1,5 +1,5 @@
 const I18N = (() => {
-  const SUPPORTED = ["it", "en", "es"];
+  const SUPPORTED = ["it", "en", "es", "de", "fr", "pt", "ru", "zh"];
   const STORAGE_KEY = "pnm_lang";
   let dict = {};
 
@@ -42,13 +42,20 @@ const I18N = (() => {
 
   async function load(lang) {
     if (!SUPPORTED.includes(lang)) lang = "it";
-    const res = await fetch(`../js/lang/${lang}.json`).catch(() => null);
-    if (!res || !res.ok) return;
-    dict = await res.json();
-    currentLang = lang;
-    localStorage.setItem(STORAGE_KEY, lang);
-    applyToDom();
-    document.dispatchEvent(new CustomEvent("i18n:changed", { detail: { lang } }));
+    try {
+      const res = await fetch(`../js/lang/${lang}.json`);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      dict = await res.json();
+      currentLang = lang;
+      localStorage.setItem(STORAGE_KEY, lang);
+      applyToDom();
+      document.dispatchEvent(new CustomEvent("i18n:changed", { detail: { lang } }));
+    } catch (err) {
+      // Prima falliva in silenzio: se il file di traduzione manca o non
+      // risponde, non succedeva nulla di visibile e sembrava "rotto".
+      // Ora almeno lo segnaliamo in console per poterlo diagnosticare.
+      console.error("i18n: impossibile caricare la lingua \"" + lang + "\":", err.message);
+    }
   }
 
   async function init() {
