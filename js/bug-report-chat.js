@@ -125,7 +125,7 @@
     lastRenderedCount = messages.length;
 
     if (!messages.length) {
-      container.innerHTML = '<div class="pm-bugchat-empty"><span class="pm-bugchat-empty-icon">💬</span>Nessun messaggio ancora.<br>Scrivi il primo qui sotto.</div>';
+      container.innerHTML = '<div class="pm-bugchat-empty"><span class="pm-bugchat-empty-icon">' + PM_ICONS.chat + '</span>Nessun messaggio ancora.<br>Scrivi il primo qui sotto.</div>';
       return;
     }
 
@@ -161,14 +161,14 @@
     overlay.innerHTML =
       '<div class="pm-bugchat-window">' +
         '<div class="pm-bugchat-header">' +
-          '<div class="pm-bugchat-header-icon">💬</div>' +
+          '<div class="pm-bugchat-header-icon">' + PM_ICONS.chat + '</div>' +
           '<div class="pm-bugchat-header-text"><b>Chat ticket</b><span>I messaggi arrivano anche su Telegram</span></div>' +
           '<button class="pm-bugchat-close" type="button" aria-label="Chiudi">×</button>' +
         '</div>' +
         '<div class="pm-bugchat-messages" id="pm-bugchat-messages"></div>' +
         '<form class="pm-bugchat-form" id="pm-bugchat-form">' +
           '<textarea id="pm-bugchat-input" rows="1" placeholder="Scrivi un messaggio..." maxlength="2000" required></textarea>' +
-          '<button type="submit" class="pm-bugchat-send" aria-label="Invia">➤</button>' +
+          '<button type="submit" class="pm-bugchat-send" aria-label="Invia">' + PM_ICONS.send + '</button>' +
         '</form>' +
       '</div>';
     document.body.appendChild(overlay);
