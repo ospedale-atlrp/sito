@@ -40,7 +40,16 @@ const I18N = (() => {
   let currentLang = "it";
   function current() { return currentLang; }
 
-  async function load(lang) {
+  async function savePreferenceToServer(lang) {
+    try {
+      if (!window.PM_DB) return;
+      const { data: sessionData } = await PM_DB.auth.getSession();
+      if (!sessionData || !sessionData.session) return;
+      await PM_DB.functions.invoke("set-language-preference", { body: { lang } });
+    } catch (_ignored) { /* non blocca il cambio lingua se il salvataggio fallisce */ }
+  }
+
+  async function load(lang, opts) {
     if (!SUPPORTED.includes(lang)) lang = "it";
     try {
       const res = await fetch(`../js/lang/${lang}.json`);
@@ -50,16 +59,29 @@ const I18N = (() => {
       localStorage.setItem(STORAGE_KEY, lang);
       applyToDom();
       document.dispatchEvent(new CustomEvent("i18n:changed", { detail: { lang } }));
+      if (!opts || !opts.fromServer) savePreferenceToServer(lang);
     } catch (err) {
-      // Prima falliva in silenzio: se il file di traduzione manca o non
-      // risponde, non succedeva nulla di visibile e sembrava "rotto".
-      // Ora almeno lo segnaliamo in console per poterlo diagnosticare.
       console.error("i18n: impossibile caricare la lingua \"" + lang + "\":", err.message);
+    }
+  }
+
+  async function syncFromServerIfLoggedIn() {
+    try {
+      if (!window.PM_DB) return null;
+      const { data: sessionData } = await PM_DB.auth.getSession();
+      if (!sessionData || !sessionData.session) return null;
+      const { data: profile } = await PM_DB.from("profiles").select("preferred_language").eq("id", sessionData.session.user.id).maybeSingle();
+      const lang = profile && profile.preferred_language;
+      return SUPPORTED.includes(lang) ? lang : null;
+    } catch (_ignored) {
+      return null;
     }
   }
 
   async function init() {
     await load(detectDefault());
+    const serverLang = await syncFromServerIfLoggedIn();
+    if (serverLang && serverLang !== currentLang) await load(serverLang, { fromServer: true });
     document.querySelectorAll(".lang-switch button").forEach((btn) => {
       btn.addEventListener("click", () => load(btn.dataset.lang));
     });
