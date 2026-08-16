@@ -4,7 +4,13 @@
    data-seg-panel="id" e data-seg-label="Etichetta visibile"; questo script
    costruisce la barra e mostra/nasconde i pannelli, senza spostare o
    ricreare il contenuto (così tutto il codice che già punta a quegli id
-   dentro continua a funzionare invariato). */
+   dentro continua a funzionare invariato).
+
+   i18n: se un pannello ha anche data-seg-label-i18n="chiave", i18n.js
+   aggiorna da solo l'attributo data-seg-label ad ogni cambio lingua (vedi
+   applyToDom() in i18n.js). Qui ci limitiamo a riascoltare l'evento
+   "i18n:changed" e a ridisegnare il testo dei bottoni già montati, senza
+   ricostruire la barra da zero (così non si perde la scheda attiva). */
 (function () {
   if (!document.getElementById('pm-segmented-style')) {
     const style = document.createElement('style');
@@ -36,6 +42,10 @@
     document.head.appendChild(style);
   }
 
+  // Registro di tutte le barre montate nella pagina corrente, per poterne
+  // ridisegnare le etichette al cambio lingua senza doverle ricostruire.
+  const mountedBars = [];
+
   function mountSegments(barEl, panelsContainerEl, opts) {
     opts = opts || {};
     if (!barEl || !panelsContainerEl) return null;
@@ -50,6 +60,7 @@
       if (typeof opts.onActivate === 'function') opts.onActivate(id);
     }
 
+    const entries = [];
     panels.forEach((panel) => {
       const id = panel.dataset.segPanel;
       const label = panel.dataset.segLabel || id;
@@ -59,12 +70,30 @@
       btn.dataset.segId = id;
       btn.addEventListener('click', () => activate(id));
       barEl.appendChild(btn);
+      entries.push({ btn, panel });
     });
+
+    if (entries.length) mountedBars.push(entries);
 
     if (!panels.length) return null;
     activate(opts.initial || panels[0].dataset.segPanel);
     return { activate };
   }
+
+  // Al cambio lingua, i18n.js ha già aggiornato data-seg-label su ogni
+  // pannello (se aveva data-seg-label-i18n); qui rileggiamo quel valore
+  // per i bottoni già disegnati. Le voci il cui bottone non è più nel DOM
+  // (pagina cambiata, pannello rimosso) vengono scartate al volo.
+  document.addEventListener('i18n:changed', function () {
+    for (let i = mountedBars.length - 1; i >= 0; i--) {
+      const entries = mountedBars[i];
+      const stillAlive = entries.some((e) => e.btn.isConnected);
+      if (!stillAlive) { mountedBars.splice(i, 1); continue; }
+      entries.forEach(({ btn, panel }) => {
+        if (btn.isConnected) btn.textContent = panel.dataset.segLabel || panel.dataset.segPanel;
+      });
+    }
+  });
 
   window.pmMountSegments = mountSegments;
 })();
