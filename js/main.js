@@ -37,14 +37,20 @@ document.addEventListener("DOMContentLoaded", () => {
     revealEls.forEach((el) => el.classList.add("visible"));
   }
 
-  // Aggiorna il link "Area Riservata" / "Accedi" in base alla sessione
+  // Aggiorna il link "Area Riservata" / "Accedi" in base alla sessione.
+  // Riusa le stesse chiavi già usate dal bottone principale della home
+  // (home.cta.dashboard / home.cta.login, vedi auth.js -> pmUpdateHomeCta)
+  // invece di introdurne di nuove per lo stesso identico testo.
   const navAuthSlot = document.querySelector("[data-nav-auth]");
   if (navAuthSlot) {
     const loggedIn = !!(window.Auth && Auth.getToken());
     navAuthSlot.href = loggedIn ? "dashboard.html" : "login.html";
-    navAuthSlot.setAttribute("data-i18n", loggedIn ? "nav.dashboard" : "nav.login");
+    navAuthSlot.setAttribute("data-i18n", loggedIn ? "home.cta.dashboard" : "home.cta.login");
+    if (typeof I18N !== "undefined") {
+      navAuthSlot.textContent = I18N.t(loggedIn ? "home.cta.dashboard" : "home.cta.login");
+    }
     document.addEventListener("i18n:changed", () => {
-      navAuthSlot.textContent = I18N.t(loggedIn ? "nav.dashboard" : "nav.login");
+      navAuthSlot.textContent = I18N.t(loggedIn ? "home.cta.dashboard" : "home.cta.login");
     });
   }
 });
