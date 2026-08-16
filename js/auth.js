@@ -65,14 +65,17 @@ function pmWireAllModalitaToggles(root) {
 
 /* Bottone principale della home ("Accedi con Telegram" / "Vai alla dashboard").
    Non fa nulla se l'elemento #home-cta-link non esiste in pagina, quindi è
-   sicuro includerlo ovunque. */
+   sicuro includerlo ovunque. Usa I18N.t() così il testo segue la lingua
+   attiva; viene richiamato anche al cambio lingua (vedi in fondo al file). */
 function pmUpdateHomeCta(user) {
   const link = document.getElementById('home-cta-link');
   if (!link) return;
   const dashIcon = (typeof PM_ICONS !== 'undefined' && PM_ICONS.dashboard) ? PM_ICONS.dashboard : '▣';
-  if (user) { link.href = 'dashboard.html'; link.innerHTML = dashIcon + ' Vai alla dashboard'; link.style.background = '#1f5c8b'; }
-  else { link.href = 'login.html'; link.innerHTML = '✈ Accedi con Telegram'; link.style.background = ''; }
+  const t = (typeof I18N !== 'undefined') ? I18N.t : function (k, d) { return d || k; };
+  if (user) { link.href = 'dashboard.html'; link.innerHTML = dashIcon + ' ' + t('home.cta.dashboard', 'Vai alla dashboard'); link.style.background = '#1f5c8b'; }
+  else { link.href = 'login.html'; link.innerHTML = '✈ ' + t('home.cta.login', 'Accedi con Telegram'); link.style.background = ''; }
 }
+document.addEventListener('i18n:changed', function () { pmUpdateHomeCta(PM_CURRENT_USER); });
 
 async function pmInitDashboard() {
   const user = await pmLoadCurrentUser();
