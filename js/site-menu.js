@@ -105,6 +105,13 @@ function pmInjectSiteMenuStyle() {
     .site-menu-item > *:first-child { display:inline-flex; align-items:center; }
     .site-menu-item:hover { background:rgba(127,127,127,0.14); }
     .site-menu-item.active { font-weight:700; background:rgba(127,127,127,0.12); }
+    /* Icona/etichetta di un voce di menu: SEMPRE questi due elementi, mai
+       incollati con uno spazio scritto a mano né incapsulati in un unico
+       nodo — così lo spazio tra icona e testo è sempre lo stesso "gap"
+       della riga sotto, ovunque compaia (link semplice, bottone con
+       freccia a destra, bottone lingua...). */
+    .site-menu-item-icon { display:inline-flex; align-items:center; flex-shrink:0; }
+    .site-menu-item-main { display:flex; align-items:center; gap:8px; min-width:0; }
     .notification-menu-button { justify-content:space-between; margin-top:6px; }
     @media (min-width: 641px) and (max-width: 1024px) { .notification-menu-button { margin-top:12px; } }
     .notice-btn-right { display:flex; align-items:center; gap:7px; }
@@ -125,8 +132,12 @@ function pmInjectSiteMenuStyle() {
     html[data-theme="light"] .notification-item, html:not([data-theme]) .notification-item { background:rgba(0,0,0,0.045); }
     html[data-theme="dark"] .notification-item { background:rgba(255,255,255,0.07); }
     .notification-item b { display:block; margin-bottom:1px; }
+    /* Il cerchio bandiera NON porta più il proprio margin: lo spazio verso
+       l'etichetta arriva solo dal gap del contenitore (vedi sopra), come
+       per tutte le altre icone del menu — prima aveva margin-right:8px
+       *in aggiunta* al gap del flex, risultando più staccato degli altri. */
     .lang-flag { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%;
-      overflow:hidden; margin-right:8px; font-size:0.8rem; line-height:1; flex-shrink:0; border:1px solid; }
+      overflow:hidden; font-size:0.8rem; line-height:1; flex-shrink:0; border:1px solid; }
     html[data-theme="light"] .lang-flag, html:not([data-theme]) .lang-flag { border-color:rgba(40,40,50,0.35); }
     html[data-theme="dark"] .lang-flag { border-color:rgba(255,255,255,0.28); }
 
@@ -161,7 +172,7 @@ function pmBuildSiteMenuShell(){
   toggle.addEventListener("click",function(e){e.stopPropagation();const open=panel.classList.toggle("open");toggle.setAttribute("aria-expanded",String(open));});
   document.addEventListener("click",function(e){if(!panel.contains(e.target)&&!toggle.contains(e.target)){panel.classList.remove("open");toggle.setAttribute("aria-expanded","false");}});
 }
-function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop()||"index.html";return '<a href="'+href+'" class="site-menu-item '+(page===href?"active":"")+'">'+(icon?icon+" ":"")+label+'</a>';}
+function pmMenuItem(href,label,icon){const page=location.pathname.split("/").pop()||"index.html";const iconHtml=icon?'<span class="site-menu-item-icon">'+icon+'</span>':'';return '<a href="'+href+'" class="site-menu-item '+(page===href?"active":"")+'">'+iconHtml+'<span>'+label+'</span></a>';}
 
 /* Avvisi: letti dalla tabella "notifications" su Supabase (per ruolo o per
    singolo utente). Lo stato "letto/non letto" vive nella tabella
@@ -244,8 +255,8 @@ async function pmRenderSiteMenu(){
     });
     unread = visibleNotices.filter(function (n) { const st = statusMap[n.id]; return !st || !st.seen_at; }).length;
   }
-  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html",t("menu.dashboard","Area riservata"),PM_ICONS.dashboard)+pmMenuItem("segnalazioni.html",t("menu.reports","Segnalazioni"),PM_ICONS.bug)+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>'+PM_ICONS.bell+' '+t("menu.notices","Avvisi")+'</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices,t)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">'+PM_ICONS.logout+' '+t("menu.logout","Esci")+'</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ '+t("menu.login_telegram","Accedi con Telegram")+'</a></div>';}
-  html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.language","Lingua")+'</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' '+t("menu.language","Lingua")+' ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+pmLangFlag(l.code)+'</span>'+l.label+'</button>';}).join('')+'</div></div>';
+  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html",t("menu.dashboard","Area riservata"),PM_ICONS.dashboard)+pmMenuItem("segnalazioni.html",t("menu.reports","Segnalazioni"),PM_ICONS.bug)+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span class="site-menu-item-main">'+PM_ICONS.bell+'<span>'+t("menu.notices","Avvisi")+'</span></span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices,t)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger"><span class="site-menu-item-icon">'+PM_ICONS.logout+'</span><span>'+t("menu.logout","Esci")+'</span></a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ '+t("menu.login_telegram","Accedi con Telegram")+'</a></div>';}
+  html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.language","Lingua")+'</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span class="site-menu-item-main">'+PM_ICONS.globe+'<span>'+t("menu.language","Lingua")+' ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span></span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+pmLangFlag(l.code)+'</span><span>'+l.label+'</span></button>';}).join('')+'</div></div>';
   html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.appearance","Aspetto del sito")+'</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">'+PM_ICONS.sun+'<span>'+t("menu.theme_light","Chiaro")+'</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">'+PM_ICONS.moon+'<span>'+t("menu.theme_dark","Scuro")+'</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">'+PM_ICONS.device+'<span>'+t("menu.theme_system","Dispositivo")+'</span></button></div></div>';
   panel.innerHTML=html;
   panel.querySelectorAll('a[href="index.html"]').forEach(function(link){link.href="../index.html";});
