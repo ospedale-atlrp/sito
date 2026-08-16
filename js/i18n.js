@@ -31,6 +31,14 @@ const I18N = (() => {
     document.querySelectorAll("[data-i18n-html]").forEach((el) => {
       el.innerHTML = t(el.getAttribute("data-i18n-html"));
     });
+    // Etichette delle schede a pillola (vedi ui-tabs.js): l'attributo
+    // data-seg-label viene letto da ui-tabs.js per costruire i bottoni.
+    // Lo teniamo aggiornato qui; se una barra di schede è già stata
+    // costruita, va ricostruita per mostrare il nuovo testo (vedi
+    // l'evento "i18n:tabs-need-refresh" sotto).
+    document.querySelectorAll("[data-seg-label-i18n]").forEach((el) => {
+      el.setAttribute("data-seg-label", t(el.getAttribute("data-seg-label-i18n")));
+    });
     document.documentElement.setAttribute("lang", current());
     document.querySelectorAll(".lang-switch button").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.lang === current());
