@@ -19,3 +19,32 @@ window.PM_ICONS = {
   chevron: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><polyline points="6 9 12 15 18 9"/></svg>',
   globe: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg>',
 };
+
+/* Bandiere per il selettore di lingua, disegnate a mano invece di usare le
+   emoji 🇮🇹🇬🇧... — le emoji bandiera sono glifi Unicode "compositi" (due
+   lettere regionali unite) che alcuni sistemi/font non sanno comporre: su
+   quei dispositivi non mostrano la bandiera ma le due lettere del codice
+   paese affiancate, o un quadratino vuoto. Ogni bandiera qui è disegnata
+   in un riquadro 30x20 (proporzione tipica da bandiera) e riempie l'intero
+   cerchio del contenitore .lang-flag grazie a preserveAspectRatio="slice"
+   (stesso comportamento di object-fit:cover in CSS): il cerchio stesso è
+   la bandiera, senza bordi bianchi o angoli visibili attorno. */
+window.PM_FLAGS = {
+  it: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#009246"/><rect x="20" width="10" height="20" fill="#CE2B37"/></svg>',
+
+  en: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#012169"/><line x1="0" y1="0" x2="30" y2="20" stroke="#fff" stroke-width="4"/><line x1="0" y1="20" x2="30" y2="0" stroke="#fff" stroke-width="4"/><line x1="0" y1="0" x2="30" y2="20" stroke="#C8102E" stroke-width="1.6"/><line x1="0" y1="20" x2="30" y2="0" stroke="#C8102E" stroke-width="1.6"/><rect x="12" width="6" height="20" fill="#fff"/><rect y="7" width="30" height="6" fill="#fff"/><rect x="13.5" width="3" height="20" fill="#C8102E"/><rect y="8.5" width="30" height="3" fill="#C8102E"/></svg>',
+
+  es: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#AA151B"/><rect y="5" width="30" height="10" fill="#F1BF00"/></svg>',
+
+  de: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#FFCE00"/><rect width="30" height="6.7" fill="#000"/><rect y="6.7" width="30" height="6.6" fill="#D00"/></svg>',
+
+  fr: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#0055A4"/><rect x="20" width="10" height="20" fill="#EF4135"/></svg>',
+
+  pt: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#FF0000"/><rect width="12" height="20" fill="#046A38"/><circle cx="12" cy="10" r="3.4" fill="#FFCE00" stroke="#046A38" stroke-width="0.4"/></svg>',
+
+  ru: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#fff"/><rect y="6.7" width="30" height="6.6" fill="#0039A6"/><rect y="13.3" width="30" height="6.7" fill="#D52B1E"/></svg>',
+
+  zh: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#DE2910"/><g fill="#FFDE00"><polygon points="0,-2.60 0.59,-0.81 2.47,-0.80 0.95,0.31 1.53,2.10 0.00,1.00 -1.53,2.10 -0.95,0.31 -2.47,-0.80 -0.59,-0.81" transform="translate(6.5,6)"/><polygon points="0,-0.90 0.20,-0.28 0.86,-0.28 0.33,0.11 0.53,0.73 0.00,0.35 -0.53,0.73 -0.33,0.11 -0.86,-0.28 -0.20,-0.28" transform="translate(12.2,3.2)"/><polygon points="0,-0.90 0.20,-0.28 0.86,-0.28 0.33,0.11 0.53,0.73 0.00,0.35 -0.53,0.73 -0.33,0.11 -0.86,-0.28 -0.20,-0.28" transform="translate(14.2,6.0)"/><polygon points="0,-0.90 0.20,-0.28 0.86,-0.28 0.33,0.11 0.53,0.73 0.00,0.35 -0.53,0.73 -0.33,0.11 -0.86,-0.28 -0.20,-0.28" transform="translate(13.5,9.3)"/><polygon points="0,-0.90 0.20,-0.28 0.86,-0.28 0.33,0.11 0.53,0.73 0.00,0.35 -0.53,0.73 -0.33,0.11 -0.86,-0.28 -0.20,-0.28" transform="translate(11.0,11.4)"/></g></svg>',
+
+  ja: '<svg width="100%" height="100%" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice" style="display:block"><rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>',
+};
