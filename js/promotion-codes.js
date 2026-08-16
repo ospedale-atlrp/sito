@@ -2,6 +2,16 @@
    Le operazioni vere avvengono nelle Edge Function create-promotion-code e
    redeem-promotion-code (usano il service role, mai esposto al browser). */
 (function () {
+  function t(key, fallback, vars) {
+    let s = null;
+    if (typeof I18N !== 'undefined') { const v = I18N.t(key, vars); if (v && v !== key) s = v; }
+    if (s === null) {
+      s = fallback || key;
+      if (vars) Object.keys(vars).forEach((k) => { s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]); });
+    }
+    return s;
+  }
+  function locale() { return (typeof I18N !== 'undefined') ? I18N.current() : 'it'; }
 
   function showMsg(scope, selector, text, ok) {
     const el = scope.querySelector(selector);
@@ -23,7 +33,7 @@
       // Stessa regola lato server: solo ruoli sotto il proprio (tranne il super-admin, che li vede tutti).
       const myIndex = PM_ROLES.indexOf(user.role);
       const assignable = user.isSuperAdmin ? PM_ROLES : (myIndex === -1 ? PM_ROLES : PM_ROLES.slice(myIndex + 1));
-      roleSelect.innerHTML = '<option value="" disabled selected>Seleziona</option>' +
+      roleSelect.innerHTML = '<option value="" disabled selected>' + t('common.select', 'Seleziona') + '</option>' +
         assignable.map((r) => `<option value="${r}">${r}</option>`).join('');
       if (typeof pmEnhanceSelects === 'function') pmEnhanceSelects(form);
       if (typeof pmRefreshSelect === 'function') pmRefreshSelect(roleSelect);
@@ -44,7 +54,7 @@
         try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
       }
       if (error || !data || data.error) {
-        showMsg(form.closest('.panel-card'), '#promo-create-error', serverMessage || (data && data.error) || 'Errore nella generazione del codice.', false);
+        showMsg(form.closest('.panel-card'), '#promo-create-error', serverMessage || (data && data.error) || t('dashboard.direction.promo_generate_error', 'Errore nella generazione del codice.'), false);
         return;
       }
 
@@ -55,10 +65,10 @@
         box.style.display = 'block';
         codeEl.textContent = data.code;
         expiryEl.textContent = data.expiresAt
-          ? 'Valido fino al ' + new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.expiresAt))
-          : 'Nessuna scadenza.';
+          ? t('dashboard.direction.promo_valid_until', 'Valido fino al {date}', { date: new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(data.expiresAt)) })
+          : t('dashboard.direction.promo_expiry_none', 'Nessuna scadenza.');
       }
-      showMsg(form.closest('.panel-card'), '#promo-create-success', 'Codice generato con successo.', true);
+      showMsg(form.closest('.panel-card'), '#promo-create-success', t('dashboard.direction.promo_generate_success', 'Codice generato con successo.'), true);
       form.reset();
     });
   }
@@ -88,11 +98,11 @@
           try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
         }
         if (error || !data || data.error) {
-          if (errorEl) { errorEl.textContent = serverMessage || (data && data.error) || 'Codice non valido.'; errorEl.classList.add('show'); }
+          if (errorEl) { errorEl.textContent = serverMessage || (data && data.error) || t('dashboard.profile.promo_invalid', 'Codice non valido.'); errorEl.classList.add('show'); }
           return;
         }
 
-        if (successEl) { successEl.textContent = 'Ruolo "' + data.role + '" assegnato! Ricarico la pagina...'; successEl.classList.add('show'); }
+        if (successEl) { successEl.textContent = t('dashboard.profile.promo_success', 'Ruolo "{role}" assegnato! Ricarico la pagina...', { role: data.role }); successEl.classList.add('show'); }
         setTimeout(() => window.location.reload(), 1200);
       });
     });
