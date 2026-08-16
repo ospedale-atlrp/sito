@@ -15,22 +15,22 @@
 
     <div id="step-login">
       <img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" class="brand-mark" />
-      <h1>Accesso</h1>
-      <p class="auth-subtitle">Accedi con il tuo account Telegram. Nessuna password da ricordare.</p>
+      <h1 data-i18n="login.title">Accesso</h1>
+      <p class="auth-subtitle" data-i18n="login.subtitle">Accedi con il tuo account Telegram. Nessuna password da ricordare.</p>
 
       <div class="form-error" id="login-error"></div>
-      <div id="telegram-login-loading" class="form-note" style="display:none; margin-top:14px;">Accesso in corso...</div>
+      <div id="telegram-login-loading" class="form-note" style="display:none; margin-top:14px;" data-i18n="login.in_progress">Accesso in corso...</div>
 
       <!-- Il bottone vero e proprio viene generato da Telegram in questo contenitore. -->
       <div id="telegram-login-widget" style="margin-top:22px; display:flex; justify-content:center;"></div>
 
       <p class="form-note" style="margin-top:18px;">
-        Non hai Telegram o non riesci ad accedere? Scrivi al bot
+        <span data-i18n="login.no_telegram">Non hai Telegram o non riesci ad accedere? Scrivi al bot</span>
         <a href="https://t.me/OspSito_bot" target="_blank" rel="noopener">@OspSito_bot</a>
-        per assistenza.
+        <span data-i18n="login.for_help">per assistenza.</span>
       </p>
 
-      <p class="form-note" style="margin-top:10px;"><a href="../index.html">Torna al sito pubblico</a></p>
+      <p class="form-note" style="margin-top:10px;"><a href="../index.html" data-i18n="login.back_to_site">Torna al sito pubblico</a></p>
     </div>
 
   </div>
@@ -47,6 +47,16 @@
 
 <script>
   var PM_TELEGRAM_BOT_USERNAME = "OspSito_bot";
+
+  function pmLoginT(key, fallback, vars) {
+    let s = null;
+    if (typeof I18N !== 'undefined') { const v = I18N.t(key, vars); if (v && v !== key) s = v; }
+    if (s === null) {
+      s = fallback || key;
+      if (vars) Object.keys(vars).forEach(function (k) { s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]); });
+    }
+    return s;
+  }
 
   // Protezione anti doppio-invio: se il widget Telegram richiama la funzione
   // più di una volta (doppio click, ricaricamento del bottone, ecc.), ogni
@@ -76,7 +86,7 @@
         try { var body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
       }
       if (error || !data || data.error) {
-        throw new Error(serverMessage || (data && data.error) || 'Accesso Telegram non riuscito.');
+        throw new Error(serverMessage || (data && data.error) || pmLoginT('login.telegram_auth_failed', 'Accesso Telegram non riuscito.'));
       }
 
       var verify = await PM_DB.auth.verifyOtp({ token_hash: data.tokenHash, type: 'magiclink' });
@@ -85,7 +95,7 @@
       window.location.href = 'dashboard.html';
     } catch (e) {
       if (loading) loading.style.display = 'none';
-      pmShowLoginError(e.message || 'Accesso Telegram non riuscito. Riprova.');
+      pmShowLoginError(e.message || pmLoginT('login.telegram_auth_failed_retry', 'Accesso Telegram non riuscito. Riprova.'));
       pmLoginInFlight = false; // permette un nuovo tentativo dopo un errore
     }
   }
