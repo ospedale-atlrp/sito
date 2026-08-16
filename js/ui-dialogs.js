@@ -3,12 +3,22 @@
    Riusa le classi già esistenti .modal / .modal-card / .btn del sito, quindi
    non serve toccare il CSS: eredita automaticamente lo stesso stile. */
 (function () {
+  function t(key, fallback, vars) {
+    let s = null;
+    if (typeof I18N !== 'undefined') { const v = I18N.t(key, vars); if (v && v !== key) s = v; }
+    if (s === null) {
+      s = fallback || key;
+      if (vars) Object.keys(vars).forEach((k) => { s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]); });
+    }
+    return s;
+  }
+
   function buildModal(bodyHtml, buttonsHtml) {
     const overlay = document.createElement('div');
     overlay.className = 'modal';
     overlay.innerHTML =
       '<div class="modal-card" style="max-width:420px;">' +
-        '<button class="icon-close" type="button" aria-label="Chiudi">×</button>' +
+        '<button class="icon-close" type="button" aria-label="' + t('common.close', 'Chiudi') + '">×</button>' +
         '<div class="pm-dialog-body">' + bodyHtml + '</div>' +
         '<div class="pm-dialog-actions" style="margin-top:22px; display:flex; gap:10px; justify-content:flex-end;">' + buttonsHtml + '</div>' +
       '</div>';
@@ -20,8 +30,8 @@
     opts = opts || {};
     return new Promise((resolve) => {
       const overlay = buildModal(
-        '<h2 style="margin-top:0;">' + (opts.title || 'Avviso') + '</h2><p>' + message + '</p>',
-        '<button type="button" class="btn btn-primary btn-sm js-ok">Ok</button>'
+        '<h2 style="margin-top:0;">' + (opts.title || t('common.notice_title', 'Avviso')) + '</h2><p>' + message + '</p>',
+        '<button type="button" class="btn btn-primary btn-sm js-ok">' + t('common.ok', 'Ok') + '</button>'
       );
       function close() { overlay.remove(); resolve(); }
       overlay.querySelector('.icon-close').onclick = close;
@@ -35,9 +45,9 @@
     opts = opts || {};
     return new Promise((resolve) => {
       const overlay = buildModal(
-        '<h2 style="margin-top:0;">' + (opts.title || 'Conferma') + '</h2><p>' + message + '</p>',
-        '<button type="button" class="btn btn-outline btn-sm js-cancel">' + (opts.cancelLabel || 'Annulla') + '</button>' +
-        '<button type="button" class="btn btn-primary btn-sm js-ok">' + (opts.okLabel || 'Conferma') + '</button>'
+        '<h2 style="margin-top:0;">' + (opts.title || t('common.confirm', 'Conferma')) + '</h2><p>' + message + '</p>',
+        '<button type="button" class="btn btn-outline btn-sm js-cancel">' + (opts.cancelLabel || t('common.cancel', 'Annulla')) + '</button>' +
+        '<button type="button" class="btn btn-primary btn-sm js-ok">' + (opts.okLabel || t('common.confirm', 'Conferma')) + '</button>'
       );
       function close(result) { overlay.remove(); resolve(result); }
       overlay.querySelector('.icon-close').onclick = () => close(false);
@@ -53,10 +63,10 @@
     const esc = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     return new Promise((resolve) => {
       const overlay = buildModal(
-        '<h2 style="margin-top:0;">' + (opts.title || 'Richiesta') + '</h2><p>' + message + '</p>' +
+        '<h2 style="margin-top:0;">' + (opts.title || t('common.request_title', 'Richiesta')) + '</h2><p>' + message + '</p>' +
         '<input type="text" class="staff-text-input js-input" style="width:100%;" value="' + esc(defaultValue) + '">',
-        '<button type="button" class="btn btn-outline btn-sm js-cancel">Annulla</button>' +
-        '<button type="button" class="btn btn-primary btn-sm js-ok">Conferma</button>'
+        '<button type="button" class="btn btn-outline btn-sm js-cancel">' + t('common.cancel', 'Annulla') + '</button>' +
+        '<button type="button" class="btn btn-primary btn-sm js-ok">' + t('common.confirm', 'Conferma') + '</button>'
       );
       const input = overlay.querySelector('.js-input');
       function close(result) { overlay.remove(); resolve(result); }
@@ -96,10 +106,10 @@
   function pmShowGeneratedPassword(password) {
     return new Promise((resolve) => {
       const overlay = buildModal(
-        '<h2 style="margin-top:0;">Nuova password generata</h2>' +
-        '<p>Ecco la nuova password. Comunicala con attenzione, non verrà mostrata di nuovo.</p>' +
+        '<h2 style="margin-top:0;">' + t('auth.new_password_title', 'Nuova password generata') + '</h2>' +
+        '<p>' + t('auth.new_password_text', 'Ecco la nuova password. Comunicala con attenzione, non verrà mostrata di nuovo.') + '</p>' +
         '<p style="font-family:monospace; font-size:1.35rem; text-align:center; padding:14px; border-radius:8px; background:rgba(127,127,127,0.18); letter-spacing:1px; margin:14px 0;">' + password + '</p>',
-        '<button type="button" class="btn btn-primary btn-sm js-ok">Ho preso nota, chiudi</button>'
+        '<button type="button" class="btn btn-primary btn-sm js-ok">' + t('auth.new_password_ack', 'Ho preso nota, chiudi') + '</button>'
       );
       function close() { overlay.remove(); resolve(); }
       overlay.querySelector('.icon-close').onclick = close;
