@@ -6,16 +6,19 @@ const PM_THEME_KEY = "pm_theme";
    Corrisponde 1:1 a I18N.SUPPORTED in i18n.js — se si aggiunge una lingua
    lì, va aggiunta anche qui. */
 const PM_LANGS = [
-  { code: "it", short: "ITA", label: "Italiano", flag: "🇮🇹" },
-  { code: "en", short: "ENG", label: "English", flag: "🇬🇧" },
-  { code: "es", short: "ESP", label: "Español", flag: "🇪🇸" },
-  { code: "de", short: "DEU", label: "Deutsch", flag: "🇩🇪" },
-  { code: "fr", short: "FRA", label: "Français", flag: "🇫🇷" },
-  { code: "pt", short: "POR", label: "Português", flag: "🇵🇹" },
-  { code: "ru", short: "RUS", label: "Русский", flag: "🇷🇺" },
-  { code: "zh", short: "CHI", label: "中文", flag: "🇨🇳" },
-  { code: "ja", short: "JPN", label: "日本語", flag: "🇯🇵" },
+  { code: "it", short: "ITA", label: "Italiano" },
+  { code: "en", short: "ENG", label: "English" },
+  { code: "es", short: "ESP", label: "Español" },
+  { code: "de", short: "DEU", label: "Deutsch" },
+  { code: "fr", short: "FRA", label: "Français" },
+  { code: "pt", short: "POR", label: "Português" },
+  { code: "ru", short: "RUS", label: "Русский" },
+  { code: "zh", short: "CHI", label: "中文" },
+  { code: "ja", short: "JPN", label: "日本語" },
 ];
+function pmLangFlag(code) {
+  return (typeof PM_FLAGS !== 'undefined' && PM_FLAGS[code]) ? PM_FLAGS[code] : '';
+}
 
 function pmThemePreference() { return localStorage.getItem(PM_THEME_KEY) || "system"; }
 function pmGetTheme() { const pref=pmThemePreference(); return pref === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : pref; }
@@ -242,7 +245,7 @@ async function pmRenderSiteMenu(){
     unread = visibleNotices.filter(function (n) { const st = statusMap[n.id]; return !st || !st.seen_at; }).length;
   }
   if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html",t("menu.dashboard","Area riservata"),PM_ICONS.dashboard)+pmMenuItem("segnalazioni.html",t("menu.reports","Segnalazioni"),PM_ICONS.bug)+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>'+PM_ICONS.bell+' '+t("menu.notices","Avvisi")+'</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices,t)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">'+PM_ICONS.logout+' '+t("menu.logout","Esci")+'</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ '+t("menu.login_telegram","Accedi con Telegram")+'</a></div>';}
-  html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.language","Lingua")+'</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' '+t("menu.language","Lingua")+' ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+l.flag+'</span>'+l.label+'</button>';}).join('')+'</div></div>';
+  html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.language","Lingua")+'</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' '+t("menu.language","Lingua")+' ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+pmLangFlag(l.code)+'</span>'+l.label+'</button>';}).join('')+'</div></div>';
   html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.appearance","Aspetto del sito")+'</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">'+PM_ICONS.sun+'<span>'+t("menu.theme_light","Chiaro")+'</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">'+PM_ICONS.moon+'<span>'+t("menu.theme_dark","Scuro")+'</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">'+PM_ICONS.device+'<span>'+t("menu.theme_system","Dispositivo")+'</span></button></div></div>';
   panel.innerHTML=html;
   panel.querySelectorAll('a[href="index.html"]').forEach(function(link){link.href="../index.html";});
