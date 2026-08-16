@@ -6,20 +6,27 @@
   let currentReservationId = null;
   let lastRenderedCount = -1;
 
+  function t(key, fallback) {
+    return (typeof I18N !== 'undefined') ? I18N.t(key, fallback) : (fallback || key);
+  }
+  function locale() {
+    return (typeof I18N !== 'undefined') ? I18N.current() : 'it';
+  }
+
   function esc(value) {
     return String(value || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
   function formatTime(value) {
-    try { return new Intl.DateTimeFormat('it-IT', { hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
+    try { return new Intl.DateTimeFormat(locale(), { hour: '2-digit', minute: '2-digit' }).format(new Date(value)); }
     catch (_) { return ''; }
   }
   function formatDay(value) {
     try {
       const d = new Date(value), today = new Date();
       const sameDay = d.toDateString() === today.toDateString();
-      if (sameDay) return 'Oggi';
-      return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' }).format(d);
+      if (sameDay) return t('chat.today', 'Oggi');
+      return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'long' }).format(d);
     } catch (_) { return ''; }
   }
 
@@ -125,7 +132,7 @@
     lastRenderedCount = messages.length;
 
     if (!messages.length) {
-      container.innerHTML = '<div class="pm-chat-empty"><span class="pm-chat-empty-icon">' + PM_ICONS.chat + '</span>Nessun messaggio ancora.<br>Scrivi il primo qui sotto.</div>';
+      container.innerHTML = '<div class="pm-chat-empty"><span class="pm-chat-empty-icon">' + PM_ICONS.chat + '</span>' + esc(t('chat.empty', 'Nessun messaggio ancora.')) + '<br>' + esc(t('chat.empty_hint', 'Scrivi il primo qui sotto.')) + '</div>';
       return;
     }
 
@@ -162,13 +169,13 @@
       '<div class="pm-chat-window">' +
         '<div class="pm-chat-header">' +
           '<div class="pm-chat-header-icon">' + PM_ICONS.chat + '</div>' +
-          '<div class="pm-chat-header-text"><b>Chat prenotazione</b><span>I messaggi arrivano anche su Telegram</span></div>' +
-          '<button class="pm-chat-close" type="button" aria-label="Chiudi">×</button>' +
+          '<div class="pm-chat-header-text"><b>' + esc(t('chat.reservation_title', 'Chat prenotazione')) + '</b><span>' + esc(t('chat.subtitle', 'I messaggi arrivano anche su Telegram')) + '</span></div>' +
+          '<button class="pm-chat-close" type="button" aria-label="' + esc(t('common.close', 'Chiudi')) + '">×</button>' +
         '</div>' +
         '<div class="pm-chat-messages" id="pm-chat-messages"></div>' +
         '<form class="pm-chat-form" id="pm-chat-form">' +
-          '<textarea id="pm-chat-input" rows="1" placeholder="Scrivi un messaggio..." maxlength="2000" required></textarea>' +
-          '<button type="submit" class="pm-chat-send" aria-label="Invia">' + PM_ICONS.send + '</button>' +
+          '<textarea id="pm-chat-input" rows="1" placeholder="' + esc(t('chat.placeholder', 'Scrivi un messaggio...')) + '" maxlength="2000" required></textarea>' +
+          '<button type="submit" class="pm-chat-send" aria-label="' + esc(t('common.send', 'Invia')) + '">' + PM_ICONS.send + '</button>' +
         '</form>' +
       '</div>';
     document.body.appendChild(overlay);
@@ -206,7 +213,7 @@
         try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
       }
       if (error || !data || data.error) {
-        if (typeof pmToast === 'function') pmToast(serverMessage || (data && data.error) || 'Errore nell\'invio del messaggio.', 'error');
+        if (typeof pmToast === 'function') pmToast(serverMessage || (data && data.error) || t('chat.send_error', "Errore nell'invio del messaggio."), 'error');
         return;
       }
       input.value = '';
