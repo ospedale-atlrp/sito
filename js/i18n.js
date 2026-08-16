@@ -54,7 +54,12 @@ const I18N = (() => {
       const { data: sessionData } = await PM_DB.auth.getSession();
       if (!sessionData || !sessionData.session) return;
       await PM_DB.functions.invoke("set-language-preference", { body: { lang } });
-    } catch (_ignored) { /* non blocca il cambio lingua se il salvataggio fallisce */ }
+    } catch (err) {
+      // Non blocca il cambio lingua sul dispositivo corrente se il
+      // salvataggio server fallisce, ma lo segnaliamo in console per poterlo
+      // diagnosticare (prima veniva ignorato del tutto in silenzio).
+      console.error('i18n: impossibile salvare la preferenza lingua sul server:', err && err.message);
+    }
   }
 
   async function load(lang, opts) {
@@ -87,9 +92,18 @@ const I18N = (() => {
   }
 
   async function init() {
+    // Il server (preferred_language) va consultato SOLO se su questo
+    // dispositivo non c'è ancora una lingua salvata: altrimenti, se il
+    // salvataggio verso il server fallisce silenziosamente (edge function
+    // non raggiungibile, rete, ecc.), la scelta fatta sul dispositivo
+    // verrebbe ribaltata indietro ad ogni cambio pagina, perché il sito
+    // rilegge sempre il valore (mai aggiornato) rimasto sul server.
+    const hadStoredLocally = !!localStorage.getItem(STORAGE_KEY);
     await load(detectDefault());
-    const serverLang = await syncFromServerIfLoggedIn();
-    if (serverLang && serverLang !== currentLang) await load(serverLang, { fromServer: true });
+    if (!hadStoredLocally) {
+      const serverLang = await syncFromServerIfLoggedIn();
+      if (serverLang && serverLang !== currentLang) await load(serverLang, { fromServer: true });
+    }
     document.querySelectorAll(".lang-switch button").forEach((btn) => {
       btn.addEventListener("click", () => load(btn.dataset.lang));
     });
