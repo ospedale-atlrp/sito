@@ -1,8 +1,17 @@
 /* Pagina Segnalazioni: chiunque sia loggato può segnalare un bug o proporre
    una modifica, e vedere lo stato dei propri ticket con relativa chat. */
 (function () {
-  const TYPE_LABELS = { bug: 'Bug', modifica: 'Modifica' };
-  const STATUS_LABELS = { aperto: 'Aperto', chiuso: 'Chiuso' };
+  function t(key, fallback, vars) {
+    let s = null;
+    if (typeof I18N !== 'undefined') { const v = I18N.t(key, vars); if (v && v !== key) s = v; }
+    if (s === null) {
+      s = fallback || key;
+      if (vars) Object.keys(vars).forEach((k) => { s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), vars[k]); });
+    }
+    return s;
+  }
+  function typeLabels() { return { bug: t('reports.type_bug_short', 'Bug'), modifica: t('reports.type_modifica_short', 'Modifica') }; }
+  function statusLabels() { return { aperto: t('reports.status_aperto', 'Aperto'), chiuso: t('reports.status_chiuso', 'Chiuso') }; }
 
   function showMsg(text, ok) {
     const el = document.getElementById(ok ? 'bug-form-success' : 'bug-form-error');
@@ -13,25 +22,26 @@
   }
 
   function ticketRow(r) {
-    const label = TYPE_LABELS[r.type] || r.type;
-    const status = STATUS_LABELS[r.status] || r.status;
+    const label = typeLabels()[r.type] || r.type;
+    const status = statusLabels()[r.status] || r.status;
     const action = r.status === 'aperto'
-      ? `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}">Apri chat</button>`
-      : `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}">Vedi conversazione</button>`;
-    return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag">${r.ticket_number} · ${label}</span><br><b>${r.title}</b><br>Stato: ${status}</div>${action}</div>`;
+      ? `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}">${t('reports.open_chat', 'Apri chat')}</button>`
+      : `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}">${t('reports.view_conversation', 'Vedi conversazione')}</button>`;
+    return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag">${r.ticket_number} · ${label}</span><br><b>${r.title}</b><br>${t('common.status', 'Stato')}: ${status}</div>${action}</div>`;
   }
 
   async function renderMyTickets() {
     const list = document.getElementById('my-bug-reports-list');
     if (!list || !window.PM_DB) return;
     const { data, error } = await PM_DB.functions.invoke('list-my-bug-reports', { body: {} });
-    if (error || !data || data.error) { list.innerHTML = '<div class="reservations-empty">Impossibile caricare i ticket.</div>'; return; }
+    if (error || !data || data.error) { list.innerHTML = '<div class="reservations-empty">' + t('reports.load_error', 'Impossibile caricare i ticket.') + '</div>'; return; }
     const rows = data.reports || [];
-    list.innerHTML = rows.length ? rows.map(ticketRow).join('') : '<div class="reservations-empty">Non hai ancora inviato segnalazioni.</div>';
+    list.innerHTML = rows.length ? rows.map(ticketRow).join('') : '<div class="reservations-empty">' + t('reports.none_sent', 'Non hai ancora inviato segnalazioni.') + '</div>';
     list.querySelectorAll('.js-open-bug-chat').forEach((b) => b.addEventListener('click', () => {
       if (typeof pmOpenBugReportChat === 'function') pmOpenBugReportChat(b.dataset.id);
     }));
   }
+  document.addEventListener('i18n:changed', () => { if (document.getElementById('my-bug-reports-list')) renderMyTickets(); });
 
   function pmInitBugReportsPage(user) {
     const bar = document.getElementById('bug-segment-bar');
@@ -49,7 +59,7 @@
         e.preventDefault();
         clearMsgs();
         const type = form.type.value, title = form.title.value.trim(), description = form.description.value.trim();
-        if (!type || !title || !description) return showMsg('Compila tutti i campi.', false);
+        if (!type || !title || !description) return showMsg(t('common.fill_all_fields', 'Compila tutti i campi.'), false);
 
         const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
@@ -59,9 +69,9 @@
         if (error && error.context && typeof error.context.json === 'function') {
           try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
         }
-        if (error || !data || data.error) return showMsg(serverMessage || (data && data.error) || 'Errore nell\'invio.', false);
+        if (error || !data || data.error) return showMsg(serverMessage || (data && data.error) || t('reports.submit_error', "Errore nell'invio."), false);
 
-        showMsg('Segnalazione inviata! Ticket ' + data.ticketNumber + '.', true);
+        showMsg(t('reports.submit_success', 'Segnalazione inviata! Ticket {ticket}.', { ticket: data.ticketNumber }), true);
         form.reset();
         if (typeof pmRefreshSelect === 'function') pmRefreshSelect(document.getElementById('bug-type'));
         renderMyTickets();
