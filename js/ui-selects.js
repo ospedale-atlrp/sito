@@ -10,7 +10,14 @@
    Il <select> originale resta nel DOM (nascosto visivamente) così tutto il
    codice esistente che legge/scrive .value o ascolta 'change' continua a
    funzionare come prima. Va richiamato dopo aver ricreato dinamicamente dei
-   select (es. la tabella account): pmEnhanceSelects(container) li aggancia. */
+   select (es. la tabella account): pmEnhanceSelects(container) li aggancia.
+
+   i18n: il testo mostrato nel trigger chiuso viene letto dalle <option>
+   reali al momento dell'enhance/apertura, quindi segue già le traduzioni
+   applicate da data-i18n sulle <option>. L'unico caso che va risincronizzato
+   a mano è il trigger già chiuso "congelato" con il vecchio testo quando
+   cambia lingua: per questo risincronizziamo tutti i trigger su
+   "i18n:changed". */
 (function () {
   let openState = null; // { wrap, trigger, select, panel } — un solo menu aperto alla volta
 
@@ -179,6 +186,16 @@
     closeOpen();
   }, true);
   window.addEventListener('resize', () => closeOpen());
+
+  // Quando data-i18n.js traduce le <option> del <select> nativo, il trigger
+  // "congelato" mostra ancora il vecchio testo finché non lo risincronizzi:
+  // lo facciamo per tutti i select già arricchiti ad ogni cambio lingua.
+  document.addEventListener('i18n:changed', () => {
+    document.querySelectorAll('select[data-pm-enhanced]').forEach((select) => {
+      const trigger = select.parentNode && select.parentNode.querySelector('.pm-select-trigger');
+      if (trigger) syncTrigger(select, trigger);
+    });
+  });
 
   function pmEnhanceSelects(root) {
     injectStyleOnce();
