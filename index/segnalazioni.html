@@ -14,39 +14,39 @@
   <div class="auth-card" style="max-width:640px;">
 
     <img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" class="brand-mark" />
-    <h1>Segnalazioni</h1>
-    <p class="auth-subtitle">Segnala un problema del sito o proponi una modifica. Il team ti risponde qui e su Telegram.</p>
+    <h1 data-i18n="reports.title">Segnalazioni</h1>
+    <p class="auth-subtitle" data-i18n="reports.subtitle">Segnala un problema del sito o proponi una modifica. Il team ti risponde qui e su Telegram.</p>
 
     <div id="bug-segment-bar" style="margin-top:28px;"></div>
     <div id="bug-segment-panels">
 
-      <div class="pm-segment-panel" data-seg-panel="nuova" data-seg-label="Segnalazioni">
-        <h2>Nuova segnalazione</h2>
+      <div class="pm-segment-panel" data-seg-panel="nuova" data-seg-label="Segnalazioni" data-seg-label-i18n="reports.tab.new">
+        <h2 data-i18n="reports.new.title">Nuova segnalazione</h2>
         <div style="margin-top:20px;">
           <div class="form-error" id="bug-form-error"></div>
           <div class="form-success" id="bug-form-success"></div>
           <form id="bug-report-form">
             <div class="field">
-              <label for="bug-type">Tipo</label>
+              <label for="bug-type" data-i18n="reports.type_label">Tipo</label>
               <select id="bug-type" name="type" required>
-                <option value="" disabled selected>Seleziona</option>
-                <option value="bug">Segnalazione bug</option>
-                <option value="modifica">Richiesta di modifica</option>
+                <option value="" disabled selected data-i18n="common.select">Seleziona</option>
+                <option value="bug" data-i18n="reports.type_bug">Segnalazione bug</option>
+                <option value="modifica" data-i18n="reports.type_modifica">Richiesta di modifica</option>
               </select>
             </div>
-            <div class="field"><label for="bug-title">Titolo</label><input type="text" id="bug-title" name="title" required maxlength="200" placeholder="Riassumi in poche parole" /></div>
+            <div class="field"><label for="bug-title" data-i18n="reports.title_label">Titolo</label><input type="text" id="bug-title" name="title" required maxlength="200" placeholder="Riassumi in poche parole" data-i18n-placeholder="reports.title_placeholder" /></div>
             <div class="field">
-              <label for="bug-description">Descrizione</label>
-              <textarea id="bug-description" name="description" required maxlength="3000" rows="5" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; resize:vertical; background:var(--white); color:var(--ink);" placeholder="Descrivi il problema o la modifica che vorresti"></textarea>
+              <label for="bug-description" data-i18n="reports.description_label">Descrizione</label>
+              <textarea id="bug-description" name="description" required maxlength="3000" rows="5" style="width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); font-family:var(--font-body); font-size:0.95rem; resize:vertical; background:var(--white); color:var(--ink);" placeholder="Descrivi il problema o la modifica che vorresti" data-i18n-placeholder="reports.description_placeholder"></textarea>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm">Invia segnalazione</button>
+            <button type="submit" class="btn btn-primary btn-sm" data-i18n="reports.submit">Invia segnalazione</button>
           </form>
         </div>
       </div>
 
-      <div class="pm-segment-panel" data-seg-panel="ticket" data-seg-label="Ticket creati">
-        <h2>I tuoi ticket</h2>
-        <p class="form-note">Stato delle segnalazioni che hai inviato.</p>
+      <div class="pm-segment-panel" data-seg-panel="ticket" data-seg-label="Ticket creati" data-seg-label-i18n="reports.tab.mine">
+        <h2 data-i18n="reports.mine.title">I tuoi ticket</h2>
+        <p class="form-note" data-i18n="reports.mine.subtitle">Stato delle segnalazioni che hai inviato.</p>
         <div class="reservations-list" id="my-bug-reports-list" style="margin-top:16px;"></div>
       </div>
 
@@ -80,12 +80,16 @@
     // "Torna alla Dashboard" se sei arrivato da lì, altrimenti "Torna alla
     // Home" (es. sei arrivato dalla homepage tramite il bottone in alto).
     const backLink = document.getElementById('bug-back-link');
-    if (backLink) {
+    function renderBackLink() {
+      if (!backLink) return;
+      const t = (typeof I18N !== 'undefined') ? I18N.t : function (k, d) { return d || k; };
       const cameFromDashboard = /dashboard\.html(\?|#|$)/.test(document.referrer);
       backLink.innerHTML = cameFromDashboard
-        ? '<a href="dashboard.html">← Torna alla Dashboard</a>'
-        : '<a href="../index.html">← Torna alla Home</a>';
+        ? '<a href="dashboard.html">← ' + t('reports.back_to_dashboard', 'Torna alla Dashboard') + '</a>'
+        : '<a href="../index.html">← ' + t('reports.back_to_home', 'Torna alla Home') + '</a>';
     }
+    renderBackLink();
+    document.addEventListener('i18n:changed', renderBackLink);
   });
 </script>
 </body>
