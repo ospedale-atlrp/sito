@@ -150,10 +150,10 @@ function pmBuildSiteMenuShell(){
   topLeft.appendChild(brand);
 
   const bugLink=document.createElement("a"); bugLink.className="site-bugreport-float"; bugLink.href="segnalazioni.html";
-  bugLink.innerHTML='<span class="bugreport-text">Segnalazioni Bug</span>';
+  bugLink.innerHTML='<span class="bugreport-text">'+(typeof I18N!=="undefined"?I18N.t("menu.reports","Segnalazioni"):"Segnalazioni")+'</span>';
   topLeft.appendChild(bugLink);
 
-  const toggle=document.createElement("button"); toggle.id="site-menu-toggle";toggle.className="site-menu-toggle";toggle.setAttribute("aria-label","Apri menu");toggle.setAttribute("aria-expanded","false");toggle.innerHTML="<span></span><span></span><span></span>";document.body.appendChild(toggle);
+  const toggle=document.createElement("button"); toggle.id="site-menu-toggle";toggle.className="site-menu-toggle";toggle.setAttribute("aria-label","Menu");toggle.setAttribute("aria-expanded","false");toggle.innerHTML="<span></span><span></span><span></span>";document.body.appendChild(toggle);
   const panel=document.createElement("aside");panel.id="site-menu-panel";panel.className="site-menu-panel";document.body.appendChild(panel);
   toggle.addEventListener("click",function(e){e.stopPropagation();const open=panel.classList.toggle("open");toggle.setAttribute("aria-expanded",String(open));});
   document.addEventListener("click",function(e){if(!panel.contains(e.target)&&!toggle.contains(e.target)){panel.classList.remove("open");toggle.setAttribute("aria-expanded","false");}});
@@ -224,6 +224,9 @@ async function pmFetchNotifications(user) {
 
 async function pmRenderSiteMenu(){
   pmBuildSiteMenuShell();const panel=document.getElementById("site-menu-panel"),user=typeof pmCurrentUser==="function"?pmCurrentUser():null,lang=typeof I18N!=="undefined"?I18N.current():"it",pref=pmThemePreference();let html="";
+  const t=function(key,fallback){return (typeof I18N!=="undefined")?I18N.t(key,fallback):(fallback||key);};
+  const bugText=document.querySelector(".site-bugreport-float .bugreport-text");
+  if(bugText)bugText.textContent=t("menu.reports","Segnalazioni");
   let notices = [], visibleNotices = [], unread = 0, statusMap = {};
   if (user) {
     const results = await Promise.all([pmFetchNotifications(user), pmFetchNotificationStatus(user)]);
@@ -238,9 +241,9 @@ async function pmRenderSiteMenu(){
     });
     unread = visibleNotices.filter(function (n) { const st = statusMap[n.id]; return !st || !st.seen_at; }).length;
   }
-  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html","Area riservata",PM_ICONS.dashboard)+pmMenuItem("segnalazioni.html","Segnalazioni",PM_ICONS.bug)+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>'+PM_ICONS.bell+' Avvisi</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">'+PM_ICONS.logout+' Esci</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ Accedi con Telegram</a></div>';}
-  html+='<div class="site-menu-section"><div class="site-menu-label">Lingua</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' Lingua ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+l.flag+'</span>'+l.label+'</button>';}).join('')+'</div></div>';
-  html+='<div class="site-menu-section"><div class="site-menu-label">Aspetto del sito</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">'+PM_ICONS.sun+'<span>Chiaro</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">'+PM_ICONS.moon+'<span>Scuro</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">'+PM_ICONS.device+'<span>Dispositivo</span></button></div></div>';
+  if(user){html+='<div class="site-menu-section"><div class="site-menu-account-head"><div class="account-avatar"><img src="../img/logo_ospedale.png" alt="Logo Policlinico Nazionale Montessori" /></div><div><div class="account-name">'+user.username+'</div><div class="account-status">'+user.role+'</div></div></div>'+pmMenuItem("dashboard.html",t("menu.dashboard","Area riservata"),PM_ICONS.dashboard)+pmMenuItem("segnalazioni.html",t("menu.reports","Segnalazioni"),PM_ICONS.bug)+'<button class="site-menu-item notification-menu-button" id="site-menu-notices" aria-expanded="false"><span>'+PM_ICONS.bell+' '+t("menu.notices","Avvisi")+'</span><span class="notice-btn-right"><span class="menu-notice-count'+(unread?'':' is-zero')+'">'+unread+'</span><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-notice-list">'+pmNoticeList(visibleNotices,t)+'</div><a href="#" id="site-menu-logout" class="site-menu-item danger">'+PM_ICONS.logout+' '+t("menu.logout","Esci")+'</a></div>';}else{html+='<div class="site-menu-section"><a href="login.html" class="site-menu-guest-btn">✈ '+t("menu.login_telegram","Accedi con Telegram")+'</a></div>';}
+  html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.language","Lingua")+'</div><button class="site-menu-item notification-menu-button" id="site-menu-lang-btn" aria-expanded="false"><span>'+PM_ICONS.globe+' '+t("menu.language","Lingua")+' ('+(PM_LANGS.find(function(l){return l.code===lang;})||PM_LANGS[0]).short+')</span><span class="notice-btn-right"><span class="menu-notice-arrow">'+PM_ICONS.chevron+'</span></span></button><div class="menu-notice-list" id="site-menu-lang-list">'+PM_LANGS.map(function(l){return '<button type="button" class="site-menu-item'+(l.code===lang?' active':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+l.flag+'</span>'+l.label+'</button>';}).join('')+'</div></div>';
+  html+='<div class="site-menu-section"><div class="site-menu-label">'+t("menu.appearance","Aspetto del sito")+'</div><div class="theme-choices"><button data-theme-choice="light" class="'+(pref==="light"?"active":"")+'">'+PM_ICONS.sun+'<span>'+t("menu.theme_light","Chiaro")+'</span></button><button data-theme-choice="dark" class="'+(pref==="dark"?"active":"")+'">'+PM_ICONS.moon+'<span>'+t("menu.theme_dark","Scuro")+'</span></button><button data-theme-choice="system" class="'+(pref==="system"?"active":"")+'">'+PM_ICONS.device+'<span>'+t("menu.theme_system","Dispositivo")+'</span></button></div></div>';
   panel.innerHTML=html;
   panel.querySelectorAll('a[href="index.html"]').forEach(function(link){link.href="../index.html";});
   const log=document.getElementById("site-menu-logout");if(log)log.addEventListener("click",function(e){e.preventDefault();pmLogout();});
@@ -273,7 +276,7 @@ async function pmRenderSiteMenu(){
     langBtn.setAttribute("aria-expanded",String(willOpen));
   });
 }
-function pmNoticeList(items){return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><button type="button" class="notice-delete" data-id="'+n.id+'" aria-label="Elimina avviso">×</button><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">Nessun avviso.</div>';}
+function pmNoticeList(items,t){t=t||function(key,fallback){return (typeof I18N!=="undefined")?I18N.t(key,fallback):(fallback||key);};return items.length?items.slice(0,5).map(function(n){return '<div class="notification-item"><button type="button" class="notice-delete" data-id="'+n.id+'" aria-label="'+t("common.delete","Elimina")+'">×</button><b>'+n.title+'</b><span>'+n.body+'</span></div>';}).join(""):'<div class="notification-item">'+t("menu.no_notices","Nessun avviso.")+'</div>';}
 // NB: niente listener DOMContentLoaded qui — ci pensa già auth.js a chiamare
 // pmRenderSiteMenu() dopo aver caricato l'utente (per evitare un rendering
 // prematuro con utente=null che cancellerebbe lo storico "letto" via
