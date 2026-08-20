@@ -283,13 +283,20 @@
           return;
         }
         renderMessages(messagesBox, reservationId, user, true);
+        // Controllo "lampo": ricontrolla una volta sola circa 1,2s dopo un
+        // invio riuscito, per beccare un'eventuale risposta rapida senza
+        // aspettare il prossimo giro del polling regolare. È SOLO una
+        // lettura (nessun invio), quindi zero rischio di duplicati.
+        setTimeout(() => {
+          if (currentReservationId === reservationId) renderMessages(messagesBox, reservationId, user, false);
+        }, 1200);
       });
     }
 
     await renderMessages(messagesBox, reservationId, user, true);
     if (!readOnly && input) input.focus();
 
-    // Aggiornamento semplice: ricontrolla nuovi messaggi ogni 4 secondi
+    // Aggiornamento semplice: ricontrolla nuovi messaggi ogni 2,5 secondi
     // mentre il popup è aperto (niente sottoscrizioni realtime, per restare
     // semplice); ridisegna solo se il numero di messaggi è cambiato, così
     // non "salta" mentre stai leggendo o scrivendo. In sola lettura non ha
@@ -298,7 +305,7 @@
     if (!readOnly) {
       pollTimer = setInterval(() => {
         if (currentReservationId === reservationId) renderMessages(messagesBox, reservationId, user, false);
-      }, 4000);
+      }, 2500);
     }
   }
 
