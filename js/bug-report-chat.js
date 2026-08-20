@@ -156,9 +156,10 @@
     textarea.style.height = Math.min(textarea.scrollHeight, 110) + 'px';
   }
 
-  async function pmOpenBugReportChat(reportId) {
+  async function pmOpenBugReportChat(reportId, opts) {
     const user = typeof pmCurrentUser === 'function' ? pmCurrentUser() : null;
     if (!user) return;
+    const readOnly = !!(opts && opts.readOnly);
     injectStyleOnce();
     currentReservationId = reportId;
     lastRenderedCount = -1;
@@ -169,14 +170,15 @@
       '<div class="pm-bugchat-window">' +
         '<div class="pm-bugchat-header">' +
           '<div class="pm-bugchat-header-icon">' + PM_ICONS.chat + '</div>' +
-          '<div class="pm-bugchat-header-text"><b>' + esc(t('chat.report_title', 'Chat ticket')) + '</b><span>' + esc(t('chat.subtitle', 'I messaggi arrivano anche su Telegram')) + '</span></div>' +
+          '<div class="pm-bugchat-header-text"><b>' + esc(t('chat.report_title', 'Chat ticket')) + '</b><span>' + (readOnly ? esc(t('chat.closed_subtitle', 'Sola lettura — la pratica è chiusa.')) : esc(t('chat.subtitle', 'I messaggi arrivano anche su Telegram'))) + '</span></div>' +
           '<button class="pm-bugchat-close" type="button" aria-label="' + esc(t('common.close', 'Chiudi')) + '">×</button>' +
         '</div>' +
         '<div class="pm-bugchat-messages" id="pm-bugchat-messages"></div>' +
+        (readOnly ? '' :
         '<form class="pm-bugchat-form" id="pm-bugchat-form">' +
           '<textarea id="pm-bugchat-input" rows="1" placeholder="' + esc(t('chat.placeholder', 'Scrivi un messaggio...')) + '" maxlength="2000" required></textarea>' +
           '<button type="submit" class="pm-bugchat-send" aria-label="' + esc(t('common.send', 'Invia')) + '">' + PM_ICONS.send + '</button>' +
-        '</form>' +
+        '</form>') +
       '</div>';
     document.body.appendChild(overlay);
     requestAnimationFrame(() => overlay.classList.add('open'));
@@ -196,41 +198,47 @@
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', function escHandler(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); } });
 
-    input.addEventListener('input', () => autoResize(input));
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
-    });
+    if (!readOnly && form && input) {
+      input.addEventListener('input', () => autoResize(input));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+      });
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const text = input.value.trim();
-      if (!text) return;
-      sendBtn.disabled = true;
-      const { data, error } = await PM_DB.functions.invoke('send-bug-report-message', { body: { reportId, body: text } });
-      sendBtn.disabled = false;
-      let serverMessage = null;
-      if (error && error.context && typeof error.context.json === 'function') {
-        try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
-      }
-      if (error || !data || data.error) {
-        if (typeof pmToast === 'function') pmToast(serverMessage || (data && data.error) || t('chat.send_error', "Errore nell'invio del messaggio."), 'error');
-        return;
-      }
-      input.value = '';
-      autoResize(input);
-      renderMessages(messagesBox, reportId, user, true);
-    });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+        sendBtn.disabled = true;
+        const { data, error } = await PM_DB.functions.invoke('send-bug-report-message', { body: { reportId, body: text } });
+        sendBtn.disabled = false;
+        let serverMessage = null;
+        if (error && error.context && typeof error.context.json === 'function') {
+          try { const body = await error.context.json(); serverMessage = body && body.error; } catch (_) {}
+        }
+        if (error || !data || data.error) {
+          if (typeof pmToast === 'function') pmToast(serverMessage || (data && data.error) || t('chat.send_error', "Errore nell'invio del messaggio."), 'error');
+          return;
+        }
+        input.value = '';
+        autoResize(input);
+        renderMessages(messagesBox, reportId, user, true);
+      });
+    }
 
     await renderMessages(messagesBox, reportId, user, true);
-    input.focus();
+    if (!readOnly && input) input.focus();
 
     // Aggiornamento semplice: ricontrolla nuovi messaggi ogni 4 secondi
     // mentre il popup è aperto (niente sottoscrizioni realtime, per restare
     // semplice); ridisegna solo se il numero di messaggi è cambiato, così
-    // non "salta" mentre stai leggendo o scrivendo.
-    pollTimer = setInterval(() => {
-      if (currentReservationId === reportId) renderMessages(messagesBox, reportId, user, false);
-    }, 4000);
+    // non "salta" mentre stai leggendo o scrivendo. In sola lettura non ha
+    // senso continuare a interrogare il server: il ticket è chiuso e non
+    // arriveranno nuovi messaggi da nessuna delle due parti.
+    if (!readOnly) {
+      pollTimer = setInterval(() => {
+        if (currentReservationId === reportId) renderMessages(messagesBox, reportId, user, false);
+      }, 4000);
+    }
   }
 
   window.pmOpenBugReportChat = pmOpenBugReportChat;
