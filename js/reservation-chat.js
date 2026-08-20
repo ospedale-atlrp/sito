@@ -137,8 +137,12 @@
       @keyframes pmChatIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
       @media (max-width:480px) {
+        /* Foglio agganciato al fondo dello schermo, ma non a tutto schermo:
+           parte più in basso, lasciando visibile la parte alta (zona
+           notifiche/orologio) — indicativamente dall'altezza dei tasti
+           volume di un iPhone in giù, non da sotto la tacca. */
         .pm-chat-overlay { padding:0; align-items:flex-end; }
-        .pm-chat-window { max-width:none; max-height:92vh; border-radius:20px 20px 0 0; }
+        .pm-chat-window { max-width:none; height:74vh; max-height:74vh; border-radius:20px 20px 0 0; }
       }
     `;
     document.head.appendChild(style);
