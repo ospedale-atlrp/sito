@@ -24,9 +24,10 @@
   function ticketRow(r) {
     const label = typeLabels()[r.type] || r.type;
     const status = statusLabels()[r.status] || r.status;
-    const action = r.status === 'aperto'
-      ? `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}">${t('reports.open_chat', 'Apri chat')}</button>`
-      : `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}">${t('reports.view_conversation', 'Vedi conversazione')}</button>`;
+    const isClosed = r.status !== 'aperto';
+    const action = !isClosed
+      ? `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}" data-closed="0">${t('reports.open_chat', 'Apri chat')}</button>`
+      : `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}" data-closed="1">${t('reports.view_conversation', 'Vedi conversazione')}</button>`;
     return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag">${r.ticket_number} · ${label}</span><br><b>${r.title}</b><br>${t('common.status', 'Stato')}: ${status}</div>${action}</div>`;
   }
 
@@ -38,7 +39,7 @@
     const rows = data.reports || [];
     list.innerHTML = rows.length ? rows.map(ticketRow).join('') : '<div class="reservations-empty">' + t('reports.none_sent', 'Non hai ancora inviato segnalazioni.') + '</div>';
     list.querySelectorAll('.js-open-bug-chat').forEach((b) => b.addEventListener('click', () => {
-      if (typeof pmOpenBugReportChat === 'function') pmOpenBugReportChat(b.dataset.id);
+      if (typeof pmOpenBugReportChat === 'function') pmOpenBugReportChat(b.dataset.id, { readOnly: b.dataset.closed === '1' });
     }));
   }
   document.addEventListener('i18n:changed', () => { if (document.getElementById('my-bug-reports-list')) renderMyTickets(); });
