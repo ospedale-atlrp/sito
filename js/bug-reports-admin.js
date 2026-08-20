@@ -16,8 +16,9 @@
 
   function ticketRow(r) {
     const status = statusLabels()[r.status] || r.status;
-    let action = `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}">${t('reservations.open', 'Apri')}</button>`;
-    if (r.status === 'aperto') {
+    const isClosed = r.status !== 'aperto';
+    let action = `<button class="btn btn-sm btn-outline js-open-bug-chat" data-id="${r.id}" data-closed="${isClosed ? '1' : '0'}">${t('reservations.open', 'Apri')}</button>`;
+    if (!isClosed) {
       action += ` <button class="btn btn-sm btn-danger js-close-bug" data-id="${r.id}">${t('common.close', 'Chiudi')}</button>`;
     }
     return `<div class="reservation-row"><div class="res-info"><span class="reservation-tag">${r.ticket_number}</span><br><b>${r.title}</b><br>${t('reports.reported_by', 'Da:')} ${r.reporter_username} · ${t('common.status', 'Stato')}: ${status}</div>${action}</div>`;
@@ -35,7 +36,7 @@
     list.innerHTML = rows.length ? rows.map(ticketRow).join('') : '<div class="reservations-empty">' + t('reports.none_tickets', 'Nessun ticket.') + '</div>';
 
     list.querySelectorAll('.js-open-bug-chat').forEach((b) => b.addEventListener('click', () => {
-      if (typeof pmOpenBugReportChat === 'function') pmOpenBugReportChat(b.dataset.id);
+      if (typeof pmOpenBugReportChat === 'function') pmOpenBugReportChat(b.dataset.id, { readOnly: b.dataset.closed === '1' });
     }));
     list.querySelectorAll('.js-close-bug').forEach((b) => b.addEventListener('click', async () => {
       if (!(await pmConfirm(t('reports.close_confirm', 'Chiudere questo ticket? Il segnalante verrà avvisato.')))) return;
