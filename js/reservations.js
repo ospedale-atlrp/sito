@@ -138,7 +138,8 @@ function pmReservationRow(r,user) {
   const patient=`${r.nome} ${r.cognome} (${r.codice_fiscale||'—'})`;
   let action='';
   if(r.status==='inviata') action=`<button class="btn btn-sm btn-primary js-take" data-id="${r.id}">${pmT('reservations.take_charge','Prendi in carico')}</button>`;
-  if(r.status==='presa_in_carico' && assigned) action=`<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">${pmT('reservations.open','Apri')}</button> <button class="btn btn-sm btn-danger js-close" data-id="${r.id}">${pmT('common.close','Chiudi')}</button>`;
+  if(r.status==='presa_in_carico' && assigned) action=`<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}" data-closed="0">${pmT('reservations.open','Apri')}</button> <button class="btn btn-sm btn-danger js-close" data-id="${r.id}">${pmT('common.close','Chiudi')}</button>`;
+  if(r.status==='chiusa' && assigned) action=`<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}" data-closed="1">${pmT('reports.view_conversation','Vedi conversazione')}</button>`;
   const agonisticoLine = (r.type === 'certificato_medico' && r.agonistico !== null && r.agonistico !== undefined)
     ? `<br>${pmT('reservations.agonistico_label','Agonistico:')} ${r.agonistico ? pmT('common.yes','Sì') : pmT('common.no','No')}` : '';
   const statusLabels = { inviata: pmT('reservations.status_inviata','In attesa'), presa_in_carico: pmT('reservations.status_presa_in_carico','Presa in carico'), chiusa: pmT('reservations.status_chiusa','Chiusa') };
@@ -152,19 +153,29 @@ async function pmRenderReceivedReservations(listId) {
   const rows=(await pmReservationsForUser(user)).filter(r=>
     r.target_roles.includes(user.role)
     && !pmIsPatientOf(r,user)
-    && (r.status==='inviata' || (r.status==='presa_in_carico' && r.assigned_staff_id===user.id))
+    && (
+      r.status==='inviata'
+      || (r.status==='presa_in_carico' && r.assigned_staff_id===user.id)
+      // Chiusa: resta visibile SOLO a chi l'aveva presa in carico (stesso
+      // controllo di prima, "assigned_staff_id===user.id"), solo per
+      // rivederla in sola lettura — non compaiono più "Prendi in carico"
+      // né "Chiudi", quindi non si può riaprire il flusso da qui.
+      || (r.status==='chiusa' && r.assigned_staff_id===user.id)
+    )
   );
   list.innerHTML=rows.length?rows.map(r=>pmReservationRow(r,user)).join(''):'<div class="reservations-empty">'+pmT('reservations.none_pending','Nessuna prenotazione in attesa.')+'</div>';
   list.querySelectorAll('.js-take').forEach(b=>b.addEventListener('click',()=>{pmTakeReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
   list.querySelectorAll('.js-close').forEach(b=>b.addEventListener('click',()=>{pmCloseReservation(b.dataset.id).then(()=>pmRenderReceivedReservations(listId));}));
-  list.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id); }));
+  list.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id, { readOnly: b.dataset.closed === '1' }); }));
 }
 function pmMyReservationRow(r) {
   const statusLabels = { inviata: pmT('reservations.status_inviata','In attesa'), presa_in_carico: pmT('reservations.status_presa_in_carico','Presa in carico'), chiusa: pmT('reservations.status_chiusa','Chiusa') };
   const statusLabel = statusLabels[r.status] || r.status.replaceAll('_',' ');
   let action = '';
   if (r.status === 'presa_in_carico') {
-    action = `<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}">${pmT('reports.open_chat','Apri chat')}</button>`;
+    action = `<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}" data-closed="0">${pmT('reports.open_chat','Apri chat')}</button>`;
+  } else if (r.status === 'chiusa') {
+    action = `<button class="btn btn-sm btn-outline js-open-chat" data-id="${r.id}" data-closed="1">${pmT('reports.view_conversation','Vedi conversazione')}</button>`;
   }
   const assignedInfo = r.assigned_staff_name ? `<br>${pmT('reservations.followed_by','Seguito da:')} ${r.assigned_staff_name}` : '';
   return `<div class="reservation-row"><div class="res-info"><b>${pmReservationLabels()[r.type]}</b><br>${r.nome} ${r.cognome} — <b>${statusLabel}</b>${assignedInfo}</div>${action}</div>`;
@@ -173,7 +184,7 @@ async function pmRenderMyReservations(containerId) {
   const el=document.getElementById(containerId),user=pmCurrentUser(); if(!el||!user)return;
   const rows=(await pmReservationsForUser(user)).filter(r=>pmIsPatientOf(r,user));
   el.innerHTML=rows.length?rows.map(pmMyReservationRow).join(''):'<div class="reservations-empty">'+pmT('reservations.none_created','Non hai ancora creato prenotazioni.')+'</div>';
-  el.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id); }));
+  el.querySelectorAll('.js-open-chat').forEach(b=>b.addEventListener('click',()=>{ if (typeof pmOpenReservationChat === 'function') pmOpenReservationChat(b.dataset.id, { readOnly: b.dataset.closed === '1' }); }));
 }
 function pmRenderReservationCounters(){}
 function pmRenderApprovedCounters(){}
